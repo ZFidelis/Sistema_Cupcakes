@@ -1,0 +1,38 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+main {
+  width: 100%;
+  min-width: 0;
+  max-width: 42rem;
+  padding: clamp(1.5rem, 5vw, 3.5rem);
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  color: #74504a;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0;
+  color: #452f2b;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  margin: 1.5rem 0 0;
+  color: #655752;
+  line-height: 1.7;
+}
