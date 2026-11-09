@@ -1,0 +1,38 @@
+# Documentacao local: inclusao no Git sera feita posteriormente.
+docs/
+
+# Angular e Node.js
+node_modules/
+.angular/
+dist/
+out-tsc/
+
+# ASP.NET Core e ferramentas locais de IDE
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Resultados gerados por testes e logs
+coverage/
+TestResults/
+*.log
+
+# Configuracoes locais e segredos
+.env
+.env.*
+!.env.example
+!.env.*.example
+appsettings.Local.json
+appsettings.*.Local.json
+.local/
+*.pfx
+*.p12
+*.key
+
+# Arquivos locais do sistema operacional
+.DS_Store
+Thumbs.db
