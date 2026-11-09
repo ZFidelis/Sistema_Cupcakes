@@ -3,5 +3,9 @@
 GET {{baseUrl}}/api/status
 Accept: application/json
 
+### Conectividade do PostgreSQL (200 disponivel, 503 indisponivel)
+GET {{baseUrl}}/api/status/database
+Accept: application/json
+
 GET {{baseUrl}}/openapi/v1.json
 Accept: application/json
