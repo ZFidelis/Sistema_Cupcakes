@@ -1,0 +1,17 @@
+# Complemento local opcional: usar junto de compose.yaml.
+services:
+  app:
+    image: sistema-cupcakes-app:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      PORT: "8080"
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database="${POSTGRES_DB:?Defina POSTGRES_DB}";Username="${POSTGRES_USER:?Defina POSTGRES_USER}";Password="${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}";Timeout=5;Command Timeout=5
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy

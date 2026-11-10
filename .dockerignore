@@ -1,0 +1,27 @@
+# Somente fontes e configuracoes necessarias ao build.
+**
+!global.json
+!API/
+!API/Cupcakes.Api/
+!API/Cupcakes.Api/**
+!UI/
+!UI/cupcakes-web/
+!UI/cupcakes-web/**
+
+# Dependencias e arquivos locais nunca entram no contexto.
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.angular
+**/.git
+**/.vscode
+**/.env*
+**/appsettings.Local*.json
+**/appsettings.*.Local.json
+**/*.pfx
+**/*.p12
+**/*.key
+**/*.log
+**/coverage
+**/TestResults

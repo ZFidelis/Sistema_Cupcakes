@@ -66,6 +66,14 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+if (Directory.Exists(app.Environment.WebRootPath))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    app.MapFallbackToFile("{*path:nonfile:regex(^(?!api(/|$)).*)}", "index.html");
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
