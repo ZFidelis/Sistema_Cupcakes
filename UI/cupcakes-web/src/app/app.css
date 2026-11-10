@@ -1,38 +1,106 @@
 :host {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
-  place-items: center;
-  padding: 1.5rem;
 }
 
-main {
-  width: 100%;
-  min-width: 0;
-  max-width: 42rem;
-  padding: clamp(1.5rem, 5vw, 3.5rem);
-  border: 1px solid #e1d6d2;
-  border-radius: 1rem;
+.site-header {
+  border-bottom: 1px solid #e1d6d2;
   background: #fffdfb;
 }
 
-.eyebrow {
-  margin: 0 0 1rem;
-  color: #74504a;
-  font-size: 0.875rem;
-  font-weight: 600;
+.header-content {
+  width: min(100%, 72rem);
+  margin: auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
 
-h1 {
-  margin: 0;
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .7rem;
+  font-weight: 700;
   color: #452f2b;
-  font-size: clamp(2rem, 6vw, 3rem);
-  line-height: 1.15;
-  overflow-wrap: anywhere;
+  text-decoration: none;
 }
 
-.message {
-  margin: 1.5rem 0 0;
-  color: #655752;
-  line-height: 1.7;
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: #f1ded7;
+  font-size: .875rem;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+nav a:not(.button) {
+  padding: .6rem 0;
+}
+
+.active {
+  text-decoration: underline;
+  text-underline-offset: .25rem;
+}
+
+.user-email {
+  max-width: 25rem;
+  overflow-wrap: anywhere;
+  font-size: .95rem;
+}
+
+.page-content {
+  flex: 1;
+  width: min(100%, 72rem);
+  padding: 1.5rem;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.site-footer {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6c5e58;
+  font-size: .875rem;
+}
+
+.retry {
+  border: 0;
+  background: transparent;
+  color: #79413c;
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+  padding: .4rem;
+}
+
+@media (max-width: 600px) {
+  .header-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .user-email {
+    flex: 1;
+    min-width: 0;
+  }
+  .page-content {
+    padding: 1rem;
+  }
 }

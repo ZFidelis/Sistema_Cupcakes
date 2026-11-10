@@ -1,6 +1,29 @@
-<main>
-  <p class="eyebrow">Feitos para adoçar seu dia</p>
-  <h1>{{ title() }}</h1>
-  <p class="message">Nossa loja está em preparação. Em breve, seus cupcakes favoritos por aqui.</p>
+<header class="site-header">
+  <div class="header-content">
+    <a class="brand" routerLink="/" aria-label="Cupcakes gourmet, início"><span class="brand-mark" aria-hidden="true">CG</span>Cupcakes gourmet</a>
+    <nav aria-label="Acesso à conta">
+      @if (auth.user(); as user) {
+        <span class="user-email" data-testid="current-user">{{ user.email }}</span>
+        <button id="logout-button" type="button" class="button secondary" [disabled]="logoutBusy()" (click)="logout()">
+          {{ logoutBusy() ? 'Saindo…' : 'Sair' }}
+        </button>
+      } @else if (auth.sessionState() === 'loading') {
+        <span class="hint" role="status">Consultando sua conta…</span>
+      } @else {
+        <a routerLink="/entrar" routerLinkActive="active">Entrar</a>
+        <a class="button" routerLink="/cadastro" routerLinkActive="active">Criar conta</a>
+      }
+    </nav>
+  </div>
+</header>
+<main class="page-content">
+  @if (auth.sessionState() === 'unavailable') {
+    <div class="feedback" role="status">Não foi possível consultar sua conta.
+      <button class="retry" type="button" (click)="auth.restoreSession()">Tentar novamente</button>
+    </div>
+  }
+  @if (logoutError()) { <p class="feedback error" role="alert">{{ logoutError() }}</p> }
+  @if (notice() && !auth.user() && router.url === '/') { <p class="feedback success" role="status">{{ notice() }}</p> }
   <router-outlet />
 </main>
+<footer class="site-footer">Cupcakes gourmet · Feitos para adoçar seu dia.</footer>

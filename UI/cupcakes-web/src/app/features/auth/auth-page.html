@@ -1,0 +1,78 @@
+<section class="auth-card" aria-labelledby="auth-title">
+  @if (auth.sessionState() === 'loading') {
+    <h1 id="auth-title">Um instante…</h1>
+    <p role="status">Consultando sua conta.</p>
+  } @else if (auth.user(); as user) {
+    <h1 id="auth-title">Você já está conectado</h1>
+    <p class="account-email">{{ user.email }}</p>
+    <a class="button" routerLink="/">Voltar ao início</a>
+  } @else if (registered()) {
+    <p class="eyebrow">Tudo pronto</p>
+    <h1 id="auth-title">Conta criada!</h1>
+    <p role="status">Seu cadastro foi realizado. Agora você já pode entrar na sua conta.</p>
+    <a class="button" routerLink="/entrar">Entrar na minha conta</a>
+  } @else {
+    <p class="eyebrow">{{ isRegister ? 'Seu primeiro passo' : 'Bom ter você de volta' }}</p>
+    <h1 id="auth-title">{{ isRegister ? 'Criar conta' : 'Entrar' }}</h1>
+    <p class="lead">{{ isRegister ? 'Cadastre-se para deixar seu acesso à loja pronto.' : 'Acesse com seu e-mail e senha.' }}</p>
+    @if (error()) {
+      <p class="feedback error" role="alert">{{ error() }}</p>
+    }
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <fieldset [disabled]="busy()">
+        <div class="field">
+          <label for="auth-email">E-mail</label>
+          <input id="auth-email" type="email" inputmode="email" autocomplete="email" formControlName="email"
+            maxlength="256" (blur)="trimEmail()" aria-describedby="email-error"
+            [attr.aria-invalid]="form.controls.email.invalid && (form.controls.email.touched || submitted())" />
+          <div id="email-error" class="field-error" aria-live="polite">
+            @if (form.controls.email.invalid && (form.controls.email.touched || submitted())) {
+              Informe um e-mail válido com até 256 caracteres.
+            }
+          </div>
+        </div>
+        <div class="field">
+          <label for="auth-password">Senha</label>
+          <div class="password-row">
+            <input id="auth-password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+              [attr.autocomplete]="isRegister ? 'new-password' : 'current-password'" maxlength="128"
+              aria-describedby="password-help password-error"
+              [attr.aria-invalid]="form.controls.password.invalid && (form.controls.password.touched || submitted())" />
+            <button class="show-password" type="button" (click)="showPassword.set(!showPassword())"
+              [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'">
+              {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+          <p id="password-help" class="hint">{{ isRegister ? 'De 8 a 128 caracteres, com maiúscula, minúscula e número.' : 'Use a senha do seu cadastro.' }}</p>
+          <div id="password-error" class="field-error" aria-live="polite">
+            @if (form.controls.password.invalid && (form.controls.password.touched || submitted())) {
+              {{ isRegister ? 'Informe uma senha de 8 a 128 caracteres.' : 'Informe sua senha com até 128 caracteres.' }}
+            }
+          </div>
+        </div>
+        @if (isRegister) {
+          <div class="field">
+            <label for="auth-confirm-password">Confirmar senha</label>
+            <input id="auth-confirm-password" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password"
+              formControlName="confirmPassword" maxlength="128" aria-describedby="confirm-error"
+              [attr.aria-invalid]="(form.controls.confirmPassword.invalid || form.hasError('passwordsMismatch')) && (form.controls.confirmPassword.touched || submitted())" />
+            <div id="confirm-error" class="field-error" aria-live="polite">
+              @if ((form.controls.confirmPassword.invalid || form.hasError('passwordsMismatch')) && (form.controls.confirmPassword.touched || submitted())) {
+                As senhas precisam ser iguais.
+              }
+            </div>
+          </div>
+        }
+        <button class="button submit" type="submit">
+          {{ busy() ? (isRegister ? 'Criando conta…' : 'Entrando…') : (isRegister ? 'Criar conta' : 'Entrar') }}
+        </button>
+      </fieldset>
+    </form>
+    @if (isRegister) {
+      <p class="hint email-notice">O cadastro não envia e-mail de confirmação.</p>
+      <p class="alternative">Já tem conta? <a routerLink="/entrar">Entre por aqui</a>.</p>
+    } @else {
+      <p class="alternative">Ainda não tem conta? <a routerLink="/cadastro">Crie seu cadastro</a>.</p>
+    }
+  }
+</section>
