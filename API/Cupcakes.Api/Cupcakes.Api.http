@@ -13,6 +13,18 @@ X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
   "password": "CupcakeTeste123"
 }
 
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
+
+{
+  "email": "cliente@example.invalid",
+  "password": "CupcakeTeste123"
+}
+
+GET {{baseUrl}}/api/auth/antiforgery
+Accept: application/json
+
 ### Processo da API
 GET {{baseUrl}}/api/status
 Accept: application/json

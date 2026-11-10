@@ -65,6 +65,8 @@ public sealed class TestApplication : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
         builder.ConfigureLogging(logging => logging.AddProvider(new ExceptionCaptureProvider(LoggedExceptions)));
         builder.UseContentRoot(Path.Combine(root, "API", "Cupcakes.Api"));
+        builder.ConfigureServices(services => services.AddControllers()
+            .AddApplicationPart(typeof(AuthenticationProbeController).Assembly));
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = testConnection }));
     }
