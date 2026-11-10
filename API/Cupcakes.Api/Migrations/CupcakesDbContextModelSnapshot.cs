@@ -61,6 +61,190 @@ namespace Cupcakes.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Cupcakes.Api.Domain.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Discount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("PaymentResult")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("Orders", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Orders_PaymentMethod", "\"PaymentMethod\" IN ('Pix', 'Cartao')");
+
+                            t.HasCheckConstraint("CK_Orders_PaymentResult", "\"PaymentResult\" = 'Aprovado'");
+
+                            t.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Recebido', 'EmPreparo', 'SaiuParaEntrega', 'Entregue')");
+
+                            t.HasCheckConstraint("CK_Orders_Totals", "\"Subtotal\" > 0 AND \"Discount\" >= 0 AND \"Discount\" < \"Subtotal\" AND \"Total\" = \"Subtotal\" - \"Discount\"");
+                        });
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderAddress", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Complement")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Neighborhood")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("OrderId");
+
+                    b.ToTable("OrderAddresses", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderAddresses_PostalCode", "\"PostalCode\" ~ '^[0-9]{8}$'");
+
+                            t.HasCheckConstraint("CK_OrderAddresses_State", "\"State\" ~ '^[A-Z]{2}$'");
+
+                            t.HasCheckConstraint("CK_OrderAddresses_Text", "length(btrim(\"Recipient\")) > 0 AND length(btrim(\"Street\")) > 0 AND length(btrim(\"Number\")) > 0 AND length(btrim(\"Neighborhood\")) > 0 AND length(btrim(\"City\")) > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderItem", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AppliedUnitPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("OriginalUnitPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrderId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderItems_Name", "length(btrim(\"ProductName\")) > 0");
+
+                            t.HasCheckConstraint("CK_OrderItems_Prices", "\"OriginalUnitPrice\" > 0 AND \"AppliedUnitPrice\" > 0 AND \"AppliedUnitPrice\" <= \"OriginalUnitPrice\"");
+
+                            t.HasCheckConstraint("CK_OrderItems_Quantity", "\"Quantity\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "ChangedAt");
+
+                    b.HasIndex("OrderId", "Status")
+                        .IsUnique();
+
+                    b.ToTable("OrderStatusHistory", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderStatusHistory_Status", "\"Status\" IN ('Recebido', 'EmPreparo', 'SaiuParaEntrega', 'Entregue')");
+                        });
+                });
+
             modelBuilder.Entity("Cupcakes.Api.Domain.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -393,6 +577,48 @@ namespace Cupcakes.Api.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Cupcakes.Api.Domain.Order", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderAddress", b =>
+                {
+                    b.HasOne("Cupcakes.Api.Domain.Order", null)
+                        .WithOne("Address")
+                        .HasForeignKey("Cupcakes.Api.Domain.OrderAddress", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderItem", b =>
+                {
+                    b.HasOne("Cupcakes.Api.Domain.Order", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Cupcakes.Api.Domain.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.OrderStatusHistory", b =>
+                {
+                    b.HasOne("Cupcakes.Api.Domain.Order", null)
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -447,6 +673,16 @@ namespace Cupcakes.Api.Migrations
             modelBuilder.Entity("Cupcakes.Api.Domain.Cart", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Cupcakes.Api.Domain.Order", b =>
+                {
+                    b.Navigation("Address")
+                        .IsRequired();
+
+                    b.Navigation("Items");
+
+                    b.Navigation("StatusHistory");
                 });
 #pragma warning restore 612, 618
         }

@@ -12,6 +12,10 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<OrderAddress> OrderAddresses => Set<OrderAddress>();
+    public DbSet<OrderStatusHistory> OrderStatusHistory => Set<OrderStatusHistory>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -19,6 +23,10 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
         builder.ApplyConfiguration(new ProductConfiguration());
         builder.ApplyConfiguration(new CartConfiguration());
         builder.ApplyConfiguration(new CartItemConfiguration());
+        builder.ApplyConfiguration(new OrderConfiguration());
+        builder.ApplyConfiguration(new OrderItemConfiguration());
+        builder.ApplyConfiguration(new OrderAddressConfiguration());
+        builder.ApplyConfiguration(new OrderStatusHistoryConfiguration());
 
         builder.Entity<IdentityRole>().HasData(new IdentityRole
         {
