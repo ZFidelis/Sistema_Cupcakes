@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Development
       PORT: "8080"
       ConnectionStrings__DefaultConnection: >-
         Host=postgres;Port=5432;Database="${POSTGRES_DB:?Defina POSTGRES_DB}";Username="${POSTGRES_USER:?Defina POSTGRES_USER}";Password="${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}";Timeout=5;Command Timeout=5

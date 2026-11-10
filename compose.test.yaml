@@ -1,0 +1,18 @@
+name: sistema-cupcakes-tests
+
+services:
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cupcakes_tests
+      POSTGRES_USER: cupcakes_tests
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:?Defina POSTGRES_TEST_PASSWORD no .env.test}
+    ports:
+      - "127.0.0.1:${POSTGRES_TEST_PORT:-5434}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cupcakes_tests -d cupcakes_tests"]
+      interval: 5s
+      timeout: 3s
+      retries: 12

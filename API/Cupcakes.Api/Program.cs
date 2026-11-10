@@ -1,4 +1,6 @@
 using Cupcakes.Api.Data;
+using Cupcakes.Api.Filters;
+using Cupcakes.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,15 +14,8 @@ if (builder.Environment.IsDevelopment())
         .AddCommandLine(args);
 }
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException(
-        "Configure ConnectionStrings:DefaultConnection por variavel de ambiente " +
-        "ou appsettings.Local.json em Development.");
-}
-
-builder.Services.AddDbContext<CupcakesDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<CupcakesDbContext>((services, options) =>
+    options.UseNpgsql(services.GetRequiredService<IConfiguration>().GetConnectionString("DefaultConnection")));
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>(options =>
     {
@@ -56,10 +51,31 @@ builder.Services.ConfigureApplicationCookie(options =>
         return Task.CompletedTask;
     };
 });
-builder.Services.AddControllers();
+builder.Services.AddScoped<RegistrationService>();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "Cupcakes.Antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+});
+builder.Services.AddProblemDetails();
+builder.Services.AddControllers(options => options.Filters.Add<ValidateAntiforgeryFilter>());
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+if (string.IsNullOrWhiteSpace(app.Configuration.GetConnectionString("DefaultConnection")))
+{
+    throw new InvalidOperationException(
+        "Configure ConnectionStrings:DefaultConnection por variavel de ambiente " +
+        "ou appsettings.Local.json em Development.");
+}
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -80,3 +96,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "TestPostgres": "Host=127.0.0.1;Port=5434;Database=cupcakes_tests;Username=cupcakes_tests;Password=SUBSTITUA_PELA_SENHA_DO_ENV_TEST;Timeout=5"
+  }
+}

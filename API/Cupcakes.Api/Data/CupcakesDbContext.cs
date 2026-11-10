@@ -1,3 +1,4 @@
+using Cupcakes.Api.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,14 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<IdentityRole>().HasData(new IdentityRole
+        {
+            Id = "cliente",
+            Name = ApplicationRoles.Customer,
+            NormalizedName = "CLIENTE",
+            ConcurrencyStamp = "cliente-v1"
+        });
 
         builder.Entity<IdentityUser>(user =>
         {
