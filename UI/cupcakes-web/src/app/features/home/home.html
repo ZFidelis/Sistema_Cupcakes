@@ -1,0 +1,51 @@
+<section aria-labelledby="catalog-title" [attr.aria-busy]="state() === 'loading'">
+  <header class="catalog-intro">
+    <p class="eyebrow">Feitos para adoçar seu dia</p>
+    <h1 id="catalog-title">Loja de cupcakes gourmet</h1>
+    <p>Conheça nossos sabores e encontre seu favorito.</p>
+    <p class="catalog-note">Catálogo demonstrativo, com produtos e valores fictícios. Compras estarão disponíveis em breve.</p>
+  </header>
+
+  @if (state() === 'loading') {
+    <p class="feedback" role="status">Carregando nossos cupcakes…</p>
+  } @else if (state() === 'error') {
+    <div class="feedback error" role="alert">
+      <p>Não foi possível carregar os cupcakes. Tente novamente.</p>
+      <button type="button" class="button secondary" (click)="load()">Tentar novamente</button>
+    </div>
+  } @else if (products().length === 0) {
+    <p class="feedback" role="status">Ainda não há cupcakes na vitrine. Volte em breve para conhecer nossos sabores.</p>
+  } @else {
+    <ul class="product-grid" aria-label="Cupcakes do catálogo">
+      @for (product of products(); track product.id) {
+        <li class="product-card">
+          @if (imageErrors().has(product.id)) {
+            <div class="image-fallback" role="img" [attr.aria-label]="'Imagem indisponível de ' + product.name">
+              Imagem indisponível
+            </div>
+          } @else {
+            <img class="product-image" [src]="product.imagePath" [alt]="'Ilustração de ' + product.name"
+              width="480" height="360" (error)="imageFailed(product.id)" />
+          }
+          <div class="product-content">
+            <p class="flavor">{{ product.flavor }}</p>
+            <h2>{{ product.name }}</h2>
+            <p class="description">{{ product.description }}</p>
+            <div class="price-block">
+              @if (product.promotionalPrice !== null) {
+                <span class="promotion">Promoção</span>
+                <p class="original-price">De <s>{{ product.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s></p>
+                <p class="price">Por {{ product.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+              } @else {
+                <p class="price">{{ product.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+              }
+              <p class="availability" [class.unavailable]="!product.isAvailable">
+                {{ product.isAvailable ? 'Em estoque' : 'Indisponível no momento' }}
+              </p>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

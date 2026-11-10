@@ -1,0 +1,119 @@
+.catalog-intro {
+  max-width: 48rem;
+  margin: 1.5rem 0 2rem;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  color: #452f2b;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.15;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.catalog-note {
+  font-size: .875rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+}
+
+.product-image,
+.image-fallback {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #f6efeb;
+}
+
+.image-fallback {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+}
+
+.product-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.flavor {
+  margin: 0 0 .5rem;
+  color: #79413c;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+h2 {
+  margin: 0;
+  color: #452f2b;
+  font-size: 1.375rem;
+  line-height: 1.3;
+}
+
+.description {
+  margin: .75rem 0 1.5rem;
+}
+
+.price-block {
+  margin-top: auto;
+}
+
+.promotion {
+  display: inline-block;
+  margin-bottom: .5rem;
+  padding: .25rem .6rem;
+  border-radius: .35rem;
+  background: #f6e7dc;
+  color: #79413c;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.original-price {
+  margin: 0;
+  font-size: .875rem;
+}
+
+.price {
+  margin: 0;
+  color: #452f2b;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.availability {
+  margin: .5rem 0 0;
+  color: #325e42;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.unavailable {
+  color: #862727;
+}

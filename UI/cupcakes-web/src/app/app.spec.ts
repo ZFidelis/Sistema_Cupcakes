@@ -4,6 +4,8 @@ import { provideRouter, Router } from '@angular/router';
 import { App } from './app';
 import { AuthService } from './core/auth/auth.service';
 import { routes } from './app.routes';
+import { of } from 'rxjs';
+import { CatalogService } from './core/catalog/catalog.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -11,6 +13,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter(routes),
+        { provide: CatalogService, useValue: { list: () => of([]) } },
         { provide: AuthService, useValue: {
           user: signal(null), sessionState: signal('ready'),
           restoreSession: () => Promise.resolve(), logout: () => Promise.resolve(),

@@ -1,52 +1,41 @@
-import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { CurrencyPipe, registerLocaleData } from '@angular/common';
+import localePt from '@angular/common/locales/pt';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CatalogService, Product } from '../../core/catalog/catalog.service';
+
+registerLocaleData(localePt);
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
-  template: `
-    <section class="intro-card">
-      <p class="eyebrow">Feitos para adoçar seu dia</p>
-      <h1>Loja de cupcakes gourmet</h1>
-      <p class="intro-message">Nosso catálogo está sendo preparado com carinho.</p>
-      @if (auth.user()) {
-        <p>Seu acesso já está pronto. Em breve, nossos cupcakes estarão na vitrine.</p>
-      } @else {
-        <p>Enquanto isso, você já pode criar sua conta e deixar tudo pronto para escolher seus favoritos.</p>
-        <div class="actions">
-          <a class="button" routerLink="/cadastro">Criar minha conta</a>
-          <a class="button secondary" routerLink="/entrar">Já tenho conta</a>
-        </div>
-      }
-    </section>
-  `,
-  styles: `
-    .intro-card {
-      max-width: 44rem;
-      margin: 3rem auto;
-      padding: clamp(1.5rem, 5vw, 3.5rem);
-      border: 1px solid #e1d6d2;
-      border-radius: 1rem;
-      background: #fffdfb;
-    }
-
-    h1 {
-      font-size: clamp(2rem, 6vw, 3rem);
-      line-height: 1.15;
-      margin: 0 0 1.5rem;
-      color: #452f2b;
-    }
-
-    p {
-      line-height: 1.7;
-    }
-
-    .intro-message {
-      font-size: 1.125rem;
-    }
-  `,
+  imports: [CurrencyPipe],
+  templateUrl: './home.html',
+  styleUrl: './home.css',
 })
-export class Home {
-  protected readonly auth = inject(AuthService);
+export class Home implements OnInit {
+  private readonly catalog = inject(CatalogService);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly products = signal<Product[]>([]);
+  protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
+  protected readonly imageErrors = signal<Set<string>>(new Set());
+
+  ngOnInit() {
+    this.load();
+  }
+
+  protected load() {
+    this.state.set('loading');
+    this.catalog.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: products => {
+        this.products.set(products);
+        this.imageErrors.set(new Set());
+        this.state.set('ready');
+      },
+      error: () => this.state.set('error'),
+    });
+  }
+
+  protected imageFailed(id: string) {
+    this.imageErrors.update(ids => new Set([...ids, id]));
+  }
 }
