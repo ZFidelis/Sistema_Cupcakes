@@ -1,0 +1,65 @@
+<section aria-labelledby="cart-title">
+  <h1 id="cart-title">Meu carrinho</h1>
+  <p><a routerLink="/">Continuar escolhendo cupcakes</a></p>
+  @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+  @if (notice()) { <p class="feedback success" role="status">{{ notice() }}</p> }
+
+  @if (auth.sessionState() === 'loading' || state() === 'loading') {
+    <p class="feedback" role="status">Carregando seu carrinho…</p>
+  } @else if (state() === 'anonymous') {
+    <div class="feedback">
+      <p>Entre na sua conta para adicionar produtos e acessar seu carrinho.</p>
+      <a class="button" routerLink="/entrar">Entrar</a>
+    </div>
+  } @else if (state() === 'error') {
+    <div class="feedback error" role="alert">
+      <p>Não foi possível carregar seu carrinho.</p>
+      <button class="button secondary" type="button" (click)="load()">Tentar novamente</button>
+    </div>
+  } @else if (cart(); as current) {
+    @if (current.items.length === 0) {
+      <p class="feedback" role="status">Seu carrinho está vazio. Escolha um cupcake na vitrine para começar.</p>
+    } @else {
+      @if (current.hasUnavailableItems) {
+        <p class="feedback error" role="alert">Há itens indisponíveis ou com estoque insuficiente. Ajuste as quantidades ou remova esses itens. Os totais abaixo ainda os incluem.</p>
+      }
+      <ul class="cart-items" aria-label="Produtos no carrinho" [attr.aria-busy]="busy()">
+        @for (item of current.items; track item.productId) {
+          <li class="cart-item">
+            <h2>{{ item.name }}</h2>
+            <p>Preço unitário: {{ item.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            @if (item.promotionalPrice !== null) {
+              <p>Preço original: <s>{{ item.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s></p>
+            }
+            <p class="line-total">Total do item: {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            <p>Estoque atual: {{ item.stock }}</p>
+            @if (!item.isAvailable) { <p class="item-warning">{{ item.availabilityMessage || 'Produto indisponível. Ajuste ou remova o item.' }}</p> }
+            <form (submit)="save($event, item, quantity.value)">
+              <fieldset [disabled]="busy()">
+                <label [for]="'quantity-' + item.productId">Quantidade de {{ item.name }}</label>
+                <div class="item-actions">
+                  <input #quantity [id]="'quantity-' + item.productId" name="quantity" type="number"
+                    min="1" max="2147483647" step="1" required [value]="item.quantity" />
+                  <button class="button secondary" type="submit">Atualizar</button>
+                  <button class="button secondary" type="button" (click)="remove(item)">Remover</button>
+                </div>
+              </fieldset>
+            </form>
+          </li>
+        }
+      </ul>
+    }
+    <aside class="cart-summary" aria-labelledby="summary-title">
+      <h2 id="summary-title">Resumo do carrinho</h2>
+      <dl>
+        <div><dt>Quantidade de cupcakes</dt><dd>{{ current.itemCount }}</dd></div>
+        <div><dt>Subtotal</dt><dd>{{ current.subtotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div><dt>Descontos dos produtos</dt><dd>{{ current.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div class="grand-total"><dt>Total</dt><dd data-testid="cart-total">{{ current.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+      </dl>
+      <p>{{ current.pricingNotice }}</p>
+      <p>A finalização da compra ainda não está disponível.</p>
+      <button class="button secondary" type="button" [disabled]="busy()" (click)="load()">Atualizar carrinho</button>
+    </aside>
+  }
+</section>

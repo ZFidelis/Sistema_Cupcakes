@@ -3,8 +3,11 @@
     <p class="eyebrow">Feitos para adoçar seu dia</p>
     <h1 id="catalog-title">Loja de cupcakes gourmet</h1>
     <p>Conheça nossos sabores e encontre seu favorito.</p>
-    <p class="catalog-note">Catálogo demonstrativo, com produtos e valores fictícios. Compras estarão disponíveis em breve.</p>
+    <p class="catalog-note">Catálogo demonstrativo, com produtos e valores fictícios. Monte seu carrinho; a finalização da compra estará disponível em breve.</p>
   </header>
+
+  @if (addMessage()) { <p class="feedback success" role="status">{{ addMessage() }} <a routerLink="/carrinho">Ver carrinho</a></p> }
+  @if (addError()) { <p class="feedback error" role="alert">{{ addError() }} <a routerLink="/carrinho">Ver carrinho</a></p> }
 
   @if (state() === 'loading') {
     <p class="feedback" role="status">Carregando nossos cupcakes…</p>
@@ -42,6 +45,15 @@
               <p class="availability" [class.unavailable]="!product.isAvailable">
                 {{ product.isAvailable ? 'Em estoque' : 'Indisponível no momento' }}
               </p>
+              @if (!product.isAvailable) {
+                <button class="button" type="button" disabled>Sem estoque</button>
+              } @else if (auth.user()) {
+                <button class="button add-product" type="button" [disabled]="adding() !== null" (click)="add(product)">
+                  {{ adding() === product.id ? 'Adicionando…' : 'Adicionar ao carrinho' }}
+                </button>
+              } @else {
+                <a class="button secondary" routerLink="/entrar">Entre para adicionar</a>
+              }
             </div>
           </div>
         </li>

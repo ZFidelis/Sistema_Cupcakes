@@ -3,11 +3,15 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Product } from '../../core/catalog/catalog.service';
 import { Home } from './home';
+import { provideRouter } from '@angular/router';
+import { signal, WritableSignal } from '@angular/core';
+import { AuthService, UserSession } from '../../core/auth/auth.service';
 
 describe('Home catalog', () => {
   let fixture: ComponentFixture<Home>;
   let http: HttpTestingController;
   let page: HTMLElement;
+  let account: WritableSignal<UserSession | null>;
   const regular: Product = {
     id: 'chocolate', name: 'Chocolate gourmet', flavor: 'Chocolate', description: 'Cupcake de chocolate.',
     imagePath: '/images/products/cupcake.svg', price: 12.50, promotionalPrice: null,
@@ -19,8 +23,10 @@ describe('Home catalog', () => {
   };
 
   beforeEach(() => {
+    account = signal<UserSession | null>(null);
     TestBed.configureTestingModule({
-      imports: [Home], providers: [provideHttpClient(), provideHttpClientTesting()],
+      imports: [Home], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: AuthService, useValue: { user: account, restoreSession: vi.fn() } }],
     });
     fixture = TestBed.createComponent(Home);
     http = TestBed.inject(HttpTestingController);
@@ -92,5 +98,46 @@ describe('Home catalog', () => {
     const request = http.expectOne('/api/products');
     fixture.destroy();
     expect(request.cancelled).toBe(true);
+  });
+
+  it('offers login to visitors and disables products without stock', () => {
+    http.expectOne('/api/products').flush([regular, promotion]);
+    fixture.detectChanges();
+    expect(page.querySelector('a[href="/entrar"]')?.textContent).toContain('Entre para adicionar');
+    expect(page.querySelector<HTMLButtonElement>('.product-card button')?.disabled).toBe(true);
+    expect(page.querySelector('.add-product')).toBeNull();
+  });
+
+  it('adds one item and prevents duplicate clicks until the request completes', async () => {
+    account.set({ id: 'owner', email: 'owner@example.invalid', roles: ['Cliente'] });
+    http.expectOne('/api/products').flush([regular]);
+    fixture.detectChanges();
+    const button = page.querySelector<HTMLButtonElement>('.add-product')!;
+    button.click(); button.click();
+    http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'test' });
+    await Promise.resolve();
+    const add = http.expectOne('/api/cart/items');
+    expect(add.request.body).toEqual({ productId: regular.id, quantity: 1 });
+    add.flush({ items: [] });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(page.querySelector('.feedback.success')?.textContent).toContain('adicionado');
+    expect(page.querySelector('a[href="/carrinho"]')).not.toBeNull();
+  });
+
+  it('reports stock conflict and refreshes the catalog without retrying the addition', async () => {
+    account.set({ id: 'owner', email: 'owner@example.invalid', roles: ['Cliente'] });
+    http.expectOne('/api/products').flush([regular]);
+    fixture.detectChanges();
+    page.querySelector<HTMLButtonElement>('.add-product')!.click();
+    http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'test' });
+    await Promise.resolve();
+    http.expectOne('/api/cart/items').flush({}, { status: 409, statusText: 'Conflict' });
+    await vi.waitFor(() => {
+      http.expectOne('/api/products').flush([{ ...regular, isAvailable: false, stock: 0 }]);
+    });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(page.querySelector('[role=alert]')?.textContent).toContain('estoque');
+    expect(page.querySelector('.feedback.success')).toBeNull();
+    expect(page.querySelector<HTMLButtonElement>('.product-card button')?.disabled).toBe(true);
   });
 });

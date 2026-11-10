@@ -2,6 +2,7 @@
   <div class="header-content">
     <a class="brand" routerLink="/" aria-label="Cupcakes gourmet, início"><span class="brand-mark" aria-hidden="true">CG</span>Cupcakes gourmet</a>
     <nav aria-label="Acesso à conta">
+      <a routerLink="/carrinho" routerLinkActive="active">Carrinho</a>
       @if (auth.user(); as user) {
         <span class="user-email" data-testid="current-user">{{ user.email }}</span>
         <button id="logout-button" type="button" class="button secondary" [disabled]="logoutBusy()" (click)="logout()">

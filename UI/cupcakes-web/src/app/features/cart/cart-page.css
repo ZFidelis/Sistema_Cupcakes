@@ -1,0 +1,94 @@
+h1 {
+  color: #452f2b;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+h2 {
+  margin: 0 0 1rem;
+  color: #452f2b;
+  font-size: 1.25rem;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.cart-items {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.cart-item,
+.cart-summary {
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+  overflow-wrap: anywhere;
+}
+
+.cart-summary {
+  max-width: 40rem;
+  margin: 1.5rem 0;
+}
+
+.line-total {
+  font-weight: 700;
+}
+
+.item-warning {
+  color: #862727;
+  font-weight: 600;
+}
+
+fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+label {
+  display: block;
+  margin-bottom: .5rem;
+  font-weight: 600;
+}
+
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+input {
+  width: 6rem;
+  min-height: 2.75rem;
+  padding: .6rem;
+  border: 1px solid #b9a49d;
+  border-radius: .5rem;
+  color: #332621;
+  background: white;
+  font: inherit;
+}
+
+dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .5rem 0;
+}
+
+dd {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.grand-total {
+  margin-top: .5rem;
+  border-top: 1px solid #e1d6d2;
+  color: #452f2b;
+  font-size: 1.25rem;
+  font-weight: 700;
+}

@@ -117,3 +117,8 @@ h2 {
 .unavailable {
   color: #862727;
 }
+
+.price-block .button {
+  width: 100%;
+  margin-top: 1rem;
+}

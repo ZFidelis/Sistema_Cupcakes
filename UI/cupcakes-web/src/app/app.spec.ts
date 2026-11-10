@@ -6,6 +6,7 @@ import { AuthService } from './core/auth/auth.service';
 import { routes } from './app.routes';
 import { of } from 'rxjs';
 import { CatalogService } from './core/catalog/catalog.service';
+import { CartService } from './core/cart/cart.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -13,6 +14,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter(routes),
+        { provide: CartService, useValue: {} },
         { provide: CatalogService, useValue: { list: () => of([]) } },
         { provide: AuthService, useValue: {
           user: signal(null), sessionState: signal('ready'),
