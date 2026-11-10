@@ -8,10 +8,12 @@ public sealed class Order
     private Order() { }
 
     // Representa apenas pedido aprovado na simulacao. Nao executa pagamento nem baixa estoque.
-    public Order(string userId, SimulatedPaymentMethod paymentMethod, OrderAddress address, IEnumerable<OrderItem> items)
+    public Order(string userId, SimulatedPaymentMethod paymentMethod, OrderAddress address, IEnumerable<OrderItem> items,
+        Guid? confirmationId = null)
     {
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentException("Informe o usuario.", nameof(userId));
         if (!Enum.IsDefined(paymentMethod)) throw new ArgumentOutOfRangeException(nameof(paymentMethod));
+        if (confirmationId == Guid.Empty) throw new ArgumentException("Identificador de confirmacao invalido.", nameof(confirmationId));
         ArgumentNullException.ThrowIfNull(address);
         ArgumentNullException.ThrowIfNull(items);
         var snapshot = items.ToArray();
@@ -27,6 +29,7 @@ public sealed class Order
         OrderValidation.Money(Total, nameof(items));
 
         Id = Guid.NewGuid();
+        ConfirmationId = confirmationId;
         UserId = userId;
         CreatedAt = DateTimeOffset.UtcNow;
         Status = OrderStatus.Recebido;
@@ -37,6 +40,7 @@ public sealed class Order
     }
 
     public Guid Id { get; private set; }
+    public Guid? ConfirmationId { get; private set; }
     public string UserId { get; private set; } = null!;
     public DateTimeOffset CreatedAt { get; private set; }
     public OrderStatus Status { get; private set; }

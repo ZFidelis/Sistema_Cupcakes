@@ -67,6 +67,9 @@ namespace Cupcakes.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ConfirmationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -107,10 +110,15 @@ namespace Cupcakes.Api.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("UserId", "ConfirmationId")
+                        .IsUnique();
+
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("Orders", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Orders_ConfirmationId", "\"ConfirmationId\" IS NULL OR \"ConfirmationId\" <> '00000000-0000-0000-0000-000000000000'::uuid");
+
                             t.HasCheckConstraint("CK_Orders_PaymentMethod", "\"PaymentMethod\" IN ('Pix', 'Cartao')");
 
                             t.HasCheckConstraint("CK_Orders_PaymentResult", "\"PaymentResult\" = 'Aprovado'");

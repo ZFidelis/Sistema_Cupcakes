@@ -14,6 +14,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             table.HasCheckConstraint("CK_Orders_Status", "\"Status\" IN ('Recebido', 'EmPreparo', 'SaiuParaEntrega', 'Entregue')");
             table.HasCheckConstraint("CK_Orders_PaymentMethod", "\"PaymentMethod\" IN ('Pix', 'Cartao')");
             table.HasCheckConstraint("CK_Orders_PaymentResult", "\"PaymentResult\" = 'Aprovado'");
+            table.HasCheckConstraint("CK_Orders_ConfirmationId", "\"ConfirmationId\" IS NULL OR \"ConfirmationId\" <> '00000000-0000-0000-0000-000000000000'::uuid");
             table.HasCheckConstraint("CK_Orders_Totals", "\"Subtotal\" > 0 AND \"Discount\" >= 0 AND \"Discount\" < \"Subtotal\" AND \"Total\" = \"Subtotal\" - \"Discount\"");
         });
         order.HasKey(x => x.Id);
@@ -31,6 +32,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         order.Navigation(x => x.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
         order.Navigation(x => x.StatusHistory).UsePropertyAccessMode(PropertyAccessMode.Field);
         order.HasIndex(x => new { x.UserId, x.CreatedAt });
+        order.HasIndex(x => new { x.UserId, x.ConfirmationId }).IsUnique();
         order.HasIndex(x => x.CreatedAt);
         order.HasIndex(x => x.Status);
     }

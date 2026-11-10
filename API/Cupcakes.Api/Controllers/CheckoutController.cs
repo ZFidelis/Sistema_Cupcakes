@@ -10,8 +10,20 @@ namespace Cupcakes.Api.Controllers;
 [Authorize]
 [Route("api/checkout")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class CheckoutController(CheckoutPreviewService checkout) : ControllerBase
+public sealed class CheckoutController(CheckoutPreviewService checkout, CheckoutConfirmationService confirmations) : ControllerBase
 {
+    [HttpPost("confirm")]
+    [ProducesResponseType<CheckoutConfirmationResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<CheckoutConfirmationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<CheckoutConfirmationResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CheckoutConfirmationResponse>> Confirm(CheckoutConfirmationRequest request, CancellationToken ct)
+    {
+        var result = await confirmations.ConfirmAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, request, ct);
+        return StatusCode(result.StatusCode, result.Response);
+    }
+
     [HttpPost("preview")]
     [ProducesResponseType<CheckoutPreviewResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<CheckoutPreviewResponse>(StatusCodes.Status409Conflict)]
