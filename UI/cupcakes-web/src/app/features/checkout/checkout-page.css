@@ -1,0 +1,97 @@
+h1 {
+  color: #452f2b;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+h2,
+legend {
+  color: #452f2b;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+p,
+li {
+  line-height: 1.6;
+}
+
+.demo-note,
+.checkout-card,
+form {
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+  overflow-wrap: anywhere;
+}
+
+.checkout-card {
+  margin-top: 1.5rem;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 1.25rem;
+}
+
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+}
+
+.field {
+  min-width: 0;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: .4rem;
+  font-weight: 600;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 2.875rem;
+  padding: .7rem;
+  border: 1px solid #b9a49d;
+  border-radius: .5rem;
+  background: white;
+  color: #332621;
+  font: inherit;
+}
+
+.field-error {
+  color: #862727;
+  line-height: 1.6;
+}
+
+dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .5rem 0;
+}
+
+dd {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.total {
+  color: #452f2b;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.order-id {
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,69 @@
+<section aria-labelledby="checkout-title">
+  <h1 id="checkout-title">Finalizar pedido</h1>
+  <p class="demo-note">Demonstração acadêmica: use endereço fictício. PIX e cartão são simulados; não há cobrança real ou coleta de dados bancários.</p>
+  <p><a routerLink="/carrinho">Voltar ao carrinho</a></p>
+  @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+  @if (notice()) { <p class="feedback success" role="status">{{ notice() }}</p> }
+
+  @if (auth.sessionState() === 'loading') {
+    <p role="status">Consultando sua conta…</p>
+  } @else if (!auth.user() || expired()) {
+    <p class="feedback">Entre na sua conta para finalizar o pedido. <a routerLink="/entrar">Entrar</a></p>
+  } @else if (order(); as confirmed) {
+    <article class="checkout-card" aria-labelledby="confirmed-title">
+      <h2 id="confirmed-title">Pedido confirmado</h2>
+      <p class="order-id">Número: {{ confirmed.id }}</p>
+      <p>Data: {{ confirmed.createdAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p>
+      <p>Status: {{ confirmed.status }} · {{ confirmed.paymentMethod === 'Pix' ? 'PIX' : 'Cartão' }} simulado</p>
+      <ul>@for (item of confirmed.items; track item.productId) {
+        <li>{{ item.quantity }} × {{ item.productName }} — {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</li>
+      }</ul>
+      <p class="total" data-testid="confirmed-total">Total: {{ confirmed.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+      <p>Destino fictício: {{ confirmed.address.street }}, {{ confirmed.address.number }} — {{ confirmed.address.city }}/{{ confirmed.address.state }}, CEP {{ confirmed.address.postalCode }}.</p>
+      <p>Frete e impostos adicionais não calculados. Não há entrega real neste projeto demonstrativo.</p>
+      <a class="button" routerLink="/">Voltar à vitrine</a>
+    </article>
+  } @else {
+    @if (uncertain()) {
+      <div class="feedback" role="status">
+        <p>Há uma tentativa de confirmação pendente. Confira o resultado antes de iniciar outra compra.</p>
+        <button class="button" type="button" [disabled]="busy()" (click)="confirm()">{{ busy() ? 'Conferindo…' : 'Conferir resultado da tentativa' }}</button>
+      </div>
+    }
+    <form [formGroup]="form" (ngSubmit)="review()" novalidate>
+      <fieldset [disabled]="busy() || uncertain()">
+        <legend>Endereço de demonstração</legend>
+        <div class="address-grid">
+          <div class="field"><label for="checkout-recipient">Destinatário</label><input id="checkout-recipient" formControlName="recipient" maxlength="100" autocomplete="name" required /></div>
+          <div class="field"><label for="checkout-street">Rua</label><input id="checkout-street" formControlName="street" maxlength="150" autocomplete="address-line1" required /></div>
+          <div class="field"><label for="checkout-number">Número (ou s/n)</label><input id="checkout-number" formControlName="number" maxlength="20" required /></div>
+          <div class="field"><label for="checkout-neighborhood">Bairro</label><input id="checkout-neighborhood" formControlName="neighborhood" maxlength="80" required /></div>
+          <div class="field"><label for="checkout-city">Cidade</label><input id="checkout-city" formControlName="city" maxlength="80" autocomplete="address-level2" required /></div>
+          <div class="field"><label for="checkout-state">UF (duas letras)</label><input id="checkout-state" formControlName="state" maxlength="2" autocomplete="address-level1" required /></div>
+          <div class="field"><label for="checkout-postalCode">CEP (oito dígitos)</label><input id="checkout-postalCode" formControlName="postalCode" maxlength="8" inputmode="numeric" autocomplete="postal-code" required /></div>
+          <div class="field"><label for="checkout-complement">Complemento (opcional)</label><input id="checkout-complement" formControlName="complement" maxlength="100" autocomplete="address-line2" /></div>
+        </div>
+        @if (submitted() && form.invalid) { <p class="field-error" role="alert">Preencha os campos obrigatórios. UF deve ter duas letras e CEP oito dígitos sem pontuação.</p> }
+        <div class="field"><label for="checkout-payment">Método simulado</label><select id="checkout-payment" formControlName="paymentMethod"><option value="Pix">PIX simulado</option><option value="Cartao">Cartão simulado</option></select></div>
+        <div class="field"><label for="checkout-simulation">Resultado desejado para a demonstração</label><select id="checkout-simulation" formControlName="simulation"><option value="Aprovar">Aprovar simulação</option><option value="Recusar">Recusar simulação</option></select></div>
+        <button class="button secondary" type="submit">{{ busy() ? 'Aguarde…' : 'Revisar pedido' }}</button>
+      </fieldset>
+    </form>
+    @if (preview(); as current) {
+      <article class="checkout-card" aria-labelledby="review-title">
+        <h2 id="review-title">Confira seu pedido</h2>
+        <p>{{ current.address.recipient }} — {{ current.address.street }}, {{ current.address.number }}, {{ current.address.neighborhood }}, {{ current.address.city }}/{{ current.address.state }} — CEP {{ current.address.postalCode }}</p>
+        @if (current.issues.length) { <ul class="field-error" role="alert">@for (issue of current.issues; track $index) { <li>{{ issue.message }}</li> }</ul> }
+        <ul>@for (item of current.cart.items; track item.productId) { <li>{{ item.quantity }} × {{ item.name }} — {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</li> }</ul>
+        <dl>
+          <div><dt>Subtotal</dt><dd>{{ current.cart.subtotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+          <div><dt>Descontos</dt><dd>{{ current.cart.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+          <div class="total"><dt>Total</dt><dd data-testid="checkout-total">{{ current.cart.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        </dl>
+        <p>{{ current.cart.pricingNotice }}</p>
+        <p>Confirmação inteiramente simulada, sem cobrança real.</p>
+        <button id="confirm-checkout" class="button" type="button" [disabled]="busy() || uncertain() || !reviewed() || !current.canProceed" (click)="confirm()">{{ busy() ? 'Confirmando…' : 'Confirmar pedido simulado' }}</button>
+      </article>
+    }
+  }
+</section>

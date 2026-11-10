@@ -58,7 +58,9 @@
         <div class="grand-total"><dt>Total</dt><dd data-testid="cart-total">{{ current.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
       </dl>
       <p>{{ current.pricingNotice }}</p>
-      <p>A finalização da compra ainda não está disponível.</p>
+      @if (current.items.length > 0 && !current.hasUnavailableItems && !busy()) {
+        <p><a class="button" routerLink="/checkout">Revisar e finalizar pedido</a></p>
+      }
       <button class="button secondary" type="button" [disabled]="busy()" (click)="load()">Atualizar carrinho</button>
     </aside>
   }
