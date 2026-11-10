@@ -102,6 +102,12 @@ X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN_APOS_LOGIN
   ]
 }
 
+GET {{baseUrl}}/api/orders
+Accept: application/json
+
+GET {{baseUrl}}/api/orders/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
 ### Encerrar sessao
 
 POST {{baseUrl}}/api/auth/logout

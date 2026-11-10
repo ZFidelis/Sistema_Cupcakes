@@ -26,7 +26,7 @@ public sealed class CheckoutConfirmationService(CupcakesDbContext db, CheckoutPr
         {
             if (!MatchesOrder(existing, request, address, method))
                 return Result(409, "confirmation_reused", "Este identificador ja pertence a outro conteudo de compra. Consulte o pedido original e use um novo identificador para outra compra.");
-            return new(200, new("approved", "Compra simulada ja confirmada. O pedido original foi recuperado, sem nova baixa de estoque.", true, Map(existing)));
+            return new(200, new("approved", "Compra simulada ja confirmada. O pedido original foi recuperado, sem nova baixa de estoque.", true, OrderResponseMapper.Map(existing)));
         }
 
         var productIds = await db.CartItems.Where(item => db.Carts.Any(cart => cart.Id == item.CartId && cart.UserId == userId))
@@ -63,7 +63,7 @@ public sealed class CheckoutConfirmationService(CupcakesDbContext db, CheckoutPr
         await db.CartItems.Where(item => db.Carts.Any(cart => cart.Id == item.CartId && cart.UserId == userId)).ExecuteDeleteAsync(ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        return new(201, new("approved", "Pedido confirmado com pagamento inteiramente simulado. Nenhuma transacao financeira real foi processada.", true, Map(order)));
+        return new(201, new("approved", "Pedido confirmado com pagamento inteiramente simulado. Nenhuma transacao financeira real foi processada.", true, OrderResponseMapper.Map(order)));
     }
 
     private static bool MatchesCart(CartResponse cart, IReadOnlyCollection<CheckoutExpectedItem> expected) =>
@@ -80,15 +80,6 @@ public sealed class CheckoutConfirmationService(CupcakesDbContext db, CheckoutPr
         && order.Address.Number == address.Number && order.Address.Neighborhood == address.Neighborhood
         && order.Address.City == address.City && order.Address.State == address.State
         && order.Address.PostalCode == address.PostalCode && order.Address.Complement == address.Complement;
-
-    private static OrderConfirmationResponse Map(Order order) => new(order.Id, order.ConfirmationId,
-        order.CreatedAt, order.Status.ToString(), order.PaymentMethod.ToString(), order.PaymentResult,
-        new(order.Address.Recipient, order.Address.Street, order.Address.Number, order.Address.Neighborhood,
-            order.Address.City, order.Address.State, order.Address.PostalCode, order.Address.Complement),
-        order.Items.OrderBy(item => item.ProductName).ThenBy(item => item.ProductId).Select(item =>
-            new OrderConfirmationItem(item.ProductId, item.ProductName, item.Quantity, item.OriginalUnitPrice,
-                item.AppliedUnitPrice, item.Subtotal, item.Discount, item.Total)).ToArray(),
-        order.Subtotal, order.Discount, order.Total);
 
     private static CheckoutConfirmationResult Result(int status, string code, string message) =>
         new(status, new(code, message, true));
