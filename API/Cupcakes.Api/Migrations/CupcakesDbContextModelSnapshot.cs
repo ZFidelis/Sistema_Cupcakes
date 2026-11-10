@@ -22,6 +22,104 @@ namespace Cupcakes.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Cupcakes.Api.Domain.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Flavor")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal?>("PromotionalPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Products", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Products_Description", "length(btrim(\"Description\")) > 0");
+
+                            t.HasCheckConstraint("CK_Products_Flavor", "length(btrim(\"Flavor\")) > 0");
+
+                            t.HasCheckConstraint("CK_Products_ImagePath", "\"ImagePath\" = '/images/products/cupcake.svg'");
+
+                            t.HasCheckConstraint("CK_Products_Name", "length(btrim(\"Name\")) > 0");
+
+                            t.HasCheckConstraint("CK_Products_Price", "\"Price\" > 0");
+
+                            t.HasCheckConstraint("CK_Products_Promotion", "\"PromotionalPrice\" IS NULL OR (\"PromotionalPrice\" > 0 AND \"PromotionalPrice\" < \"Price\")");
+
+                            t.HasCheckConstraint("CK_Products_Stock", "\"Stock\" >= 0");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b8b95c22-a515-4f4b-a750-57343a6b0101"),
+                            Description = "Cupcake demonstrativo de chocolate com cobertura cremosa.",
+                            Flavor = "Chocolate",
+                            ImagePath = "/images/products/cupcake.svg",
+                            IsActive = true,
+                            Name = "Chocolate gourmet",
+                            Price = 12.50m,
+                            Stock = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("b8b95c22-a515-4f4b-a750-57343a6b0102"),
+                            Description = "Cupcake demonstrativo de morango com cobertura suave.",
+                            Flavor = "Morango",
+                            ImagePath = "/images/products/cupcake.svg",
+                            IsActive = true,
+                            Name = "Morango gourmet",
+                            Price = 14.00m,
+                            PromotionalPrice = 11.90m,
+                            Stock = 15
+                        },
+                        new
+                        {
+                            Id = new Guid("b8b95c22-a515-4f4b-a750-57343a6b0103"),
+                            Description = "Cupcake demonstrativo de baunilha com cobertura delicada.",
+                            Flavor = "Baunilha",
+                            ImagePath = "/images/products/cupcake.svg",
+                            IsActive = true,
+                            Name = "Baunilha gourmet",
+                            Price = 10.00m,
+                            Stock = 0
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")

@@ -1,5 +1,10 @@
 @baseUrl = http://127.0.0.1:5080
 
+### Catalogo publico: produtos ativos, valores em BRL e disponibilidade
+GET {{baseUrl}}/api/products
+Accept: application/json
+
+
 GET {{baseUrl}}/api/auth/antiforgery
 Accept: application/json
 

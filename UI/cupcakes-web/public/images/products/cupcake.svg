@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-labelledby="title desc">
+  <title id="title">Cupcake ilustrativo</title>
+  <desc id="desc">Ilustracao demonstrativa de um cupcake com cobertura rosa em fundo creme.</desc>
+  <rect width="480" height="360" rx="24" fill="#f6efeb"/>
+  <ellipse cx="240" cy="302" rx="108" ry="16" fill="#e1d6d2"/>
+  <path d="M152 190h176l-27 104H179z" fill="#a2624a"/>
+  <path d="m190 207 13 70m37-70v70m50-70-13 70" stroke="#f1ded7" stroke-width="9"/>
+  <path d="M139 191c-12-24 7-47 34-49-7-24 15-43 40-43-1-23 27-39 42-60 9 30 40 38 31 65 31-1 52 22 42 45 24 2 36 23 22 42z" fill="#d9a7a0"/>
+  <path d="M176 146h134m-96-43h56" stroke="#f5d2cb" stroke-width="9" stroke-linecap="round"/>
+</svg>
