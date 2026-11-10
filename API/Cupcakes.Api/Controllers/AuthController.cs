@@ -1,6 +1,7 @@
 using Cupcakes.Api.Contracts;
 using Cupcakes.Api.Services;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,6 +18,31 @@ public sealed class AuthController(RegistrationService registration, UserManager
     {
         var tokens = antiforgery.GetAndStoreTokens(HttpContext);
         return Ok(new AntiforgeryResponse(tokens.RequestToken!));
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [ProducesResponseType<SessionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<SessionResponse>> GetSession()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+
+        return Ok(new SessionResponse(user.Id, user.Email!, (await users.GetRolesAsync(user)).ToArray()));
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout()
+    {
+        await signIn.SignOutAsync();
+        return NoContent();
     }
 
     [HttpPost("login")]
