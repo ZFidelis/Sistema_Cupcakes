@@ -10,11 +10,15 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
     : IdentityDbContext<IdentityUser>(options)
 {
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Cart> Carts => Set<Cart>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfiguration(new ProductConfiguration());
+        builder.ApplyConfiguration(new CartConfiguration());
+        builder.ApplyConfiguration(new CartItemConfiguration());
 
         builder.Entity<IdentityRole>().HasData(new IdentityRole
         {

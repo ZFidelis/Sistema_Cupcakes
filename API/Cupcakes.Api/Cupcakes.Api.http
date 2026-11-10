@@ -33,6 +33,32 @@ Accept: application/json
 GET {{baseUrl}}/api/auth/me
 Accept: application/json
 
+GET {{baseUrl}}/api/cart
+Accept: application/json
+
+POST {{baseUrl}}/api/cart/items
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN_APOS_LOGIN
+
+{
+  "productId": "b8b95c22-a515-4f4b-a750-57343a6b0101",
+  "quantity": 2
+}
+
+PUT {{baseUrl}}/api/cart/items/b8b95c22-a515-4f4b-a750-57343a6b0101
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN_APOS_LOGIN
+
+{
+  "quantity": 1
+}
+
+### Remover item
+DELETE {{baseUrl}}/api/cart/items/b8b95c22-a515-4f4b-a750-57343a6b0101
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN_APOS_LOGIN
+
+### Encerrar sessao
+
 POST {{baseUrl}}/api/auth/logout
 X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
 
