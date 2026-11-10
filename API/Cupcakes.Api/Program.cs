@@ -53,6 +53,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<CheckoutPreviewService>();
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-XSRF-TOKEN";
