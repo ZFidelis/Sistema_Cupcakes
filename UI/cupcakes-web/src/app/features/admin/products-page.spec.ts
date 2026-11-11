@@ -115,4 +115,85 @@ describe('Administrative products list', () => {
     oldRequest.flush([regular]); await settle();
     expect(page.querySelector('h2')?.textContent).toBe('Atual');
   });
+
+  function askDeactivate() {
+    page.querySelector<HTMLButtonElement>('.deactivate-product')!.click(); fixture.detectChanges();
+  }
+  async function deleteRequest() {
+    page.querySelector<HTMLButtonElement>('.confirm-deactivation')!.click(); fixture.detectChanges();
+    http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'delete-token' });
+    await Promise.resolve();
+    return http.expectOne(req => req.url === '/api/admin/products/regular' && req.method === 'DELETE');
+  }
+
+  it('requires confirmation and cancel does not write', async () => {
+    start().flush([regular]); await settle(); askDeactivate();
+    expect(page.querySelector('.deactivation-confirm')?.textContent).toContain('Pedidos anteriores serão preservados');
+    http.expectNone('/api/auth/antiforgery');
+    page.querySelector<HTMLButtonElement>('.cancel-deactivation')!.click(); fixture.detectChanges();
+    expect(page.querySelector('.deactivation-confirm')).toBeNull();
+    http.expectNone(req => req.method === 'DELETE');
+  });
+
+  it('deactivates with token only once and reloads authoritative state', async () => {
+    start().flush([regular]); await settle(); askDeactivate();
+    const request = await deleteRequest();
+    page.querySelector<HTMLButtonElement>('.confirm-deactivation')!.click();
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('delete-token');
+    expect(request.request.body).toBeNull();
+    expect(page.querySelector<HTMLButtonElement>('.actions button')!.disabled).toBe(true);
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush([{ ...regular, isActive: false, isAvailable: false }]));
+    await settle();
+    expect(page.querySelector('.feedback.success')?.textContent).toContain('Chocolate desativado');
+    expect(page.querySelector('.admin-product.inactive')).not.toBeNull();
+    expect(page.querySelector('.deactivate-product')).toBeNull();
+  });
+
+  it('does not offer deactivation for inactive products', async () => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    expect(page.querySelector('.deactivate-product')).toBeNull();
+    expect(page.querySelector('a[href="/admin/produtos/regular/editar"]')).not.toBeNull();
+  });
+
+  it.each([0, 400, 500])('reports failed/uncertain deletion %s without automatic repetition', async status => {
+    start().flush([regular]); await settle(); askDeactivate();
+    (await deleteRequest()).flush(null, { status, statusText: 'Failure' });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(page.querySelector('[role=alert]')?.textContent).toContain('Atualizar lista'); });
+    expect(page.querySelector('.admin-product.inactive')).toBeNull();
+    expect(page.querySelector('.deactivation-confirm')).toBeNull();
+    http.expectNone(req => req.method === 'DELETE');
+  });
+
+  it('refreshes after the selected product is no longer found', async () => {
+    start().flush([regular]); await settle(); askDeactivate();
+    (await deleteRequest()).flush(null, { status: 404, statusText: 'Missing' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush([])); await settle();
+    expect(page.textContent).toContain('Produto não encontrado');
+    expect(page.textContent).toContain('Nenhum produto cadastrado');
+  });
+
+  it.each([401, 403])('clears list when deactivation is denied with %s', async status => {
+    start().flush([regular]); await settle(); askDeactivate();
+    (await deleteRequest()).flush(null, { status, statusText: 'Denied' });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(page.querySelector('a[href="/entrar"]')).not.toBeNull(); });
+    expect(page.querySelector('.admin-products')).toBeNull();
+    expect(restoreSession).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+
+  it('ignores a late deletion response after logout', async () => {
+    start().flush([regular]); await settle(); askDeactivate(); const request = await deleteRequest();
+    user.set(null); fixture.detectChanges(); request.flush(null, { status: 204, statusText: 'No Content' }); await settle();
+    expect(page.querySelector('.admin-products')).toBeNull();
+    expect(page.textContent).not.toContain('Chocolate desativado');
+    http.expectNone('/api/admin/products');
+  });
+
+  it('keeps successful deletion feedback if the following read fails', async () => {
+    start().flush([regular]); await settle(); askDeactivate();
+    (await deleteRequest()).flush(null, { status: 204, statusText: 'No Content' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush(null, { status: 503, statusText: 'Unavailable' })); await settle();
+    expect(page.querySelector('.feedback.success')?.textContent).toContain('desativado');
+    expect(page.querySelector('.retry-list')).not.toBeNull();
+  });
 });

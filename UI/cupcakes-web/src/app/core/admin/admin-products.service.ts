@@ -25,6 +25,13 @@ export class AdminProductsService {
     return firstValueFrom(this.http.get<AdminProduct[]>('/api/admin/products'));
   }
 
+  async deactivate(id: string): Promise<void> {
+    const token = await firstValueFrom(this.http.get<{ requestToken: string }>('/api/auth/antiforgery'));
+    await firstValueFrom(this.http.delete<void>('/api/admin/products/' + encodeURIComponent(id), {
+      headers: { 'X-XSRF-TOKEN': token.requestToken },
+    }));
+  }
+
   async update(id: string, product: CreateProduct): Promise<AdminProduct> {
     const token = await firstValueFrom(this.http.get<{ requestToken: string }>('/api/auth/antiforgery'));
     return firstValueFrom(this.http.put<AdminProduct>('/api/admin/products/' + encodeURIComponent(id), product, {

@@ -10,8 +10,10 @@
     <p>Consulte preços, estoque e situação de todos os cupcakes. Produtos inativos ficam fora da vitrine.</p>
     <div class="actions">
       <a class="button" routerLink="/admin/produtos/novo">Cadastrar produto</a>
-      <button class="button secondary" type="button" [disabled]="state() === 'loading'" (click)="load()">Atualizar lista</button>
+      <button class="button secondary" type="button" [disabled]="state() === 'loading' || busyId() !== null" (click)="load()">Atualizar lista</button>
     </div>
+    @if (actionMessage()) { <p class="feedback success" role="status">{{ actionMessage() }}</p> }
+    @if (actionError()) { <p class="feedback error" role="alert">{{ actionError() }}</p> }
     <div [attr.aria-busy]="state() === 'loading'">
       @if (state() === 'loading') {
         <p class="feedback" role="status">Carregando produtos…</p>
@@ -39,6 +41,18 @@
                 <div><dt>Disponibilidade</dt><dd>{{ !product.isActive ? 'Fora da vitrine' : (product.isAvailable ? 'Disponível' : 'Sem estoque') }}</dd></div>
               </dl>
               <a class="button secondary" [routerLink]="['/admin/produtos', product.id, 'editar']" [attr.aria-label]="'Editar ' + product.name">Editar produto</a>
+              @if (product.isActive) {
+                <button class="button secondary deactivate-product" type="button" [disabled]="busyId() !== null" (click)="askDeactivate(product)">Desativar produto</button>
+                @if (pendingId() === product.id) {
+                  <div class="deactivation-confirm" role="group" [attr.aria-label]="'Confirmar desativação de ' + product.name" [attr.aria-busy]="busyId() === product.id">
+                    <p>Desativar {{ product.name }}? O produto sairá da vitrine. Pedidos anteriores serão preservados.</p>
+                    <div class="actions">
+                      <button class="button confirm-deactivation" type="button" [disabled]="busyId() !== null" (click)="confirmDeactivate(product)">{{ busyId() === product.id ? 'Desativando…' : 'Sim, desativar' }}</button>
+                      <button class="button secondary cancel-deactivation" type="button" [disabled]="busyId() !== null" (click)="cancelDeactivate()">Cancelar</button>
+                    </div>
+                  </div>
+                }
+              }
             </li>
           }
         </ul>

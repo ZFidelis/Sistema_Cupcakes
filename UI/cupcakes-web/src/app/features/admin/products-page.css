@@ -78,3 +78,15 @@ dd {
   display: inline-block;
   margin-top: 1.25rem;
 }
+
+.deactivate-product {
+  margin-top: .75rem;
+}
+
+.deactivation-confirm {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #79413c;
+  border-radius: .5rem;
+  background: #f6efeb;
+}
