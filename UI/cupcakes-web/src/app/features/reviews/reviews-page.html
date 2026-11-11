@@ -1,0 +1,43 @@
+<section aria-labelledby="reviews-title">
+  <h1 id="reviews-title">Avaliações{{ product() ? ' de ' + product()!.name : '' }}</h1>
+  <div class="actions"><a routerLink="/">Voltar à vitrine</a><button id="refresh-reviews" class="button secondary" type="button" [disabled]="busy() || state() === 'loading'" (click)="load()">Atualizar avaliações</button></div>
+  @if (notice()) { <p class="feedback success" role="status">{{ notice() }}</p> }
+  @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+  @if (state() === 'loading') {
+    <p class="feedback" role="status">Carregando avaliações…</p>
+  } @else if (state() === 'missing') {
+    <p class="feedback" role="status">Produto indisponível ou não encontrado. Consulte outros cupcakes na vitrine.</p>
+  } @else if (state() === 'error') {
+    <div class="feedback error" role="alert"><p>Não foi possível carregar as avaliações.</p><button id="retry-reviews" class="button secondary" type="button" (click)="load()">Tentar novamente</button></div>
+  } @else {
+    <h2>Sua opinião</h2>
+    <p>Uma avaliação por conta e produto, sem exigir compra anterior. E-mail e identificação da conta não aparecem nos comentários públicos.</p>
+    @if (auth.sessionState() === 'loading' || ownState() === 'loading') {
+      <p role="status">Consultando sua avaliação…</p>
+    } @else if (ownState() === 'anonymous') {
+      <p><a routerLink="/entrar">Entre na sua conta</a> para avaliar este cupcake.</p>
+    } @else if (ownState() === 'error') {
+      <p class="feedback error" role="alert">Não foi possível consultar sua avaliação. Use Atualizar avaliações antes de editar.</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="busy()" novalidate>
+        <fieldset [disabled]="busy()">
+          <legend>{{ mine() ? 'Editar minha avaliação' : 'Avaliar produto' }}</legend>
+          <label for="review-rating">Nota de 1 a 5</label>
+          <select id="review-rating" formControlName="rating"><option value="1">1 — Muito ruim</option><option value="2">2 — Ruim</option><option value="3">3 — Regular</option><option value="4">4 — Bom</option><option value="5">5 — Muito bom</option></select>
+          <label for="review-comment">Comentário</label>
+          <textarea id="review-comment" formControlName="comment" rows="4" maxlength="1000" aria-describedby="review-help review-errors" [attr.aria-invalid]="submitted() && form.controls.comment.invalid"></textarea>
+          <p id="review-help">Obrigatório, de 1 a 1.000 caracteres. Você pode atualizar sua avaliação nesta página.</p>
+          <div id="review-errors">@if (submitted() && form.invalid) { <p class="feedback error" role="alert">Escolha uma nota de 1 a 5 e escreva um comentário válido.</p> }</div>
+          <button id="save-review" class="button" type="submit">{{ busy() ? 'Salvando…' : (mine() ? 'Atualizar minha avaliação' : 'Publicar avaliação') }}</button>
+        </fieldset>
+      </form>
+    }
+    <h2>Comentários</h2>
+    @if (reviews().length === 0) { <p class="feedback" role="status">Este cupcake ainda não tem avaliações.</p> }
+    <ul class="reviews-list" aria-label="Avaliações do produto">
+      @for (review of reviews(); track review.id) {
+        <li class="review-card"><h3>Nota {{ review.rating }} de 5{{ mine()?.id === review.id ? ' — Sua avaliação' : '' }}</h3><p class="review-comment">{{ review.comment }}</p><p>Atualizada em {{ review.updatedAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p></li>
+      }
+    </ul>
+  }
+</section>

@@ -7,11 +7,13 @@ import { OrdersPage } from './features/orders/orders-page';
 import { ProductCreatePage } from './features/admin/product-create-page';
 import { ProductsPage } from './features/admin/products-page';
 import { SalesReportPage } from './features/admin/sales-report-page';
+import { ReviewsPage } from './features/reviews/reviews-page';
 
 export const routes: Routes = [
   { path: '', component: Home, pathMatch: 'full' },
   { path: 'carrinho', component: CartPage },
   { path: 'checkout', component: CheckoutPage },
+  { path: 'produtos/:productId/avaliacoes', component: ReviewsPage },
   { path: 'admin/produtos/novo', component: ProductCreatePage },
   { path: 'admin/produtos/:productId/editar', component: ProductCreatePage },
   { path: 'admin/produtos', component: ProductsPage },

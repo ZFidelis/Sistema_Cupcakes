@@ -86,6 +86,7 @@
               <p class="availability" [class.unavailable]="!product.isAvailable">
                 {{ product.isAvailable ? 'Em estoque' : 'Indisponível no momento' }}
               </p>
+              <a class="button secondary" [routerLink]="['/produtos', product.id, 'avaliacoes']">Ver avaliações</a>
               @if (!product.isAvailable) {
                 <button class="button" type="button" disabled>Sem estoque</button>
               } @else if (auth.user()) {
