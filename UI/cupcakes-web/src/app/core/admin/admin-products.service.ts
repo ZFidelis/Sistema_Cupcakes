@@ -13,9 +13,17 @@ export interface CreateProduct {
   stock: number;
 }
 
+export interface AdminProduct extends Product {
+  isActive: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminProductsService {
   private readonly http = inject(HttpClient);
+
+  list(): Promise<AdminProduct[]> {
+    return firstValueFrom(this.http.get<AdminProduct[]>('/api/admin/products'));
+  }
 
   async create(product: CreateProduct): Promise<Product> {
     const token = await firstValueFrom(this.http.get<{ requestToken: string }>('/api/auth/antiforgery'));

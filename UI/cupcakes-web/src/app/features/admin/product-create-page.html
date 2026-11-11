@@ -1,6 +1,7 @@
 <section aria-labelledby="admin-product-title">
   <p class="eyebrow">Administração</p>
   <h1 id="admin-product-title">Cadastrar cupcake</h1>
+  @if (isAdmin() && !blocked()) { <a class="back-link" routerLink="/admin/produtos">Ver produtos cadastrados</a> }
   @if (auth.sessionState() === 'loading') {
     <p class="feedback" role="status">Consultando sua conta…</p>
   } @else if (!isAdmin() || blocked()) {

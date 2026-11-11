@@ -31,15 +31,15 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('shows the product creation link only for administrators', () => {
+  it('shows the administrative products link only for administrators', () => {
     const fixture = TestBed.createComponent(App);
     const user = TestBed.inject(AuthService).user as WritableSignal<UserSession | null>;
-    const link = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/produtos/novo"]');
+    const link = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/produtos"]');
     fixture.detectChanges(); expect(link()).toBeNull();
     user.set({ id: 'customer', email: 'customer@example.invalid', roles: ['Cliente'] });
     fixture.detectChanges(); expect(link()).toBeNull();
     user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] });
-    fixture.detectChanges(); expect(link()?.textContent).toContain('Cadastrar produto');
+    fixture.detectChanges(); expect(link()?.textContent).toContain('Produtos');
     user.set(null); fixture.detectChanges(); expect(link()).toBeNull();
   });
 

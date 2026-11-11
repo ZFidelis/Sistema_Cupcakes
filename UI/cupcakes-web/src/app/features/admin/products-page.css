@@ -1,0 +1,80 @@
+section {
+  margin: 1.5rem 0;
+}
+
+h1,
+h2 {
+  color: #452f2b;
+}
+
+p {
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: 1.25rem 0;
+}
+
+.admin-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-product {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+  overflow-wrap: anywhere;
+}
+
+.inactive {
+  border-style: dashed;
+}
+
+.product-status {
+  margin: 0;
+  font-weight: 700;
+  color: #79413c;
+}
+
+h2 {
+  margin: .5rem 0;
+}
+
+.flavor {
+  margin: 0;
+}
+
+dl {
+  margin-bottom: 0;
+}
+
+dl div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .6rem 0;
+  border-top: 1px solid #e1d6d2;
+}
+
+dt {
+  font-weight: 600;
+}
+
+dd {
+  margin: 0;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 1.25rem;
+}

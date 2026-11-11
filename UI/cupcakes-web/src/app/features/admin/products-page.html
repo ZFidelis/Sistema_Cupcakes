@@ -1,0 +1,48 @@
+<section aria-labelledby="admin-products-title">
+  <p class="eyebrow">Administração</p>
+  <h1 id="admin-products-title">Produtos</h1>
+  @if (auth.sessionState() === 'loading') {
+    <p class="feedback" role="status">Consultando sua conta…</p>
+  } @else if (!isAdmin() || state() === 'denied') {
+    <p class="feedback" role="status">{{ message() || 'Esta página é exclusiva para administradores.' }}</p>
+    <a class="button secondary" routerLink="/entrar">Entrar com outra conta</a>
+  } @else {
+    <p>Consulte preços, estoque e situação de todos os cupcakes. Produtos inativos ficam fora da vitrine.</p>
+    <div class="actions">
+      <a class="button" routerLink="/admin/produtos/novo">Cadastrar produto</a>
+      <button class="button secondary" type="button" [disabled]="state() === 'loading'" (click)="load()">Atualizar lista</button>
+    </div>
+    <div [attr.aria-busy]="state() === 'loading'">
+      @if (state() === 'loading') {
+        <p class="feedback" role="status">Carregando produtos…</p>
+      } @else if (state() === 'error') {
+        <div class="feedback error" role="alert">
+          <p>Não foi possível consultar os produtos.</p>
+          <button class="button secondary retry-list" type="button" (click)="load()">Tentar novamente</button>
+        </div>
+      } @else if (items().length === 0) {
+        <p class="feedback" role="status">Nenhum produto cadastrado. Use Cadastrar produto para começar.</p>
+      } @else {
+        <p class="result-count" role="status">{{ items().length }} produto(s) cadastrado(s), incluindo ativos e inativos.</p>
+        <ul class="admin-products" aria-label="Produtos cadastrados">
+          @for (product of items(); track product.id) {
+            <li class="admin-product" [class.inactive]="!product.isActive">
+              <p class="product-status">{{ product.isActive ? 'Ativo' : 'Inativo' }}</p>
+              <h2>{{ product.name }}</h2>
+              <p class="flavor">{{ product.flavor }}</p>
+              <p class="description">{{ product.description }}</p>
+              <dl>
+                <div><dt>Preço normal</dt><dd>{{ product.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+                <div><dt>Promoção</dt><dd>{{ product.promotionalPrice === null ? 'Sem promoção' : (product.promotionalPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR') }}</dd></div>
+                <div><dt>Preço atual</dt><dd>{{ product.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+                <div><dt>Estoque</dt><dd>{{ product.stock }} unidade(s)</dd></div>
+                <div><dt>Disponibilidade</dt><dd>{{ !product.isActive ? 'Fora da vitrine' : (product.isAvailable ? 'Disponível' : 'Sem estoque') }}</dd></div>
+              </dl>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+  <a class="back-link" routerLink="/">Voltar à vitrine</a>
+</section>
