@@ -40,8 +40,72 @@ public sealed class ProductTests
     }
 
     private static Product Create(string name = "Cupcake", decimal price = 12.50m,
-        decimal? promotion = null, int stock = 5, bool active = true) =>
-        new(name, "Chocolate", "Descricao de teste", Product.DemoImagePath, price, promotion, stock, active);
+        decimal? promotion = null, int stock = 5, bool active = true, string flavor = "Chocolate") =>
+        new(name, flavor, "Descricao de teste", Product.DemoImagePath, price, promotion, stock, active);
+
+    [TestMethod]
+    [DataRow("flavor=%20cHoCoLaTe%20", "AB")]
+    [DataRow("flavor=Choco", "")]
+    [DataRow("flavor=%25", "")]
+    [DataRow("flavor=%20%20", "ABC")]
+    [DataRow("minPrice=10&maxPrice=10", "B")]
+    [DataRow("minPrice=12.50", "AC")]
+    [DataRow("maxPrice=10", "B")]
+    [DataRow("minPrice=0&maxPrice=9999999999.99", "ABC")]
+    [DataRow("onPromotion=true", "BC")]
+    [DataRow("onPromotion=false", "A")]
+    [DataRow("flavor=chocolate&minPrice=10&maxPrice=12&onPromotion=true", "B")]
+    [DataRow("flavor=Morango&onPromotion=false", "")]
+    public async Task AnonymousFiltersCombineUsingEffectivePriceAndOnlyActiveProducts(string query, string expected)
+    {
+        var products = new[]
+        {
+            Create("A", price: 12.50m),
+            Create("B", price: 20m, promotion: 10m, stock: 0),
+            Create("C", price: 30m, promotion: 15m, flavor: "Morango"),
+            Create("D", price: 20m, promotion: 10m, active: false)
+        };
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        db.Products.AddRange(products);
+        await db.SaveChangesAsync();
+        using var client = app.CreateBrowserClient();
+        var response = await client.GetAsync("/api/products?" + query);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var result = (await response.Content.ReadFromJsonAsync<ProductResponse[]>())!;
+        Assert.AreEqual(expected, string.Concat(result.Select(product => product.Name)));
+        if (result.Any(product => product.Name == "B"))
+        {
+            var item = result.Single(product => product.Name == "B");
+            Assert.AreEqual(10m, item.EffectivePrice);
+            Assert.IsFalse(item.IsAvailable);
+        }
+        Assert.AreEqual(4, await db.Products.CountAsync());
+        CollectionAssert.AreEqual(new[] { 5, 0, 5, 5 }, await db.Products.OrderBy(x => x.Name).Select(x => x.Stock).ToArrayAsync());
+    }
+
+    [TestMethod]
+    [DataRow("minPrice=-0.01")]
+    [DataRow("maxPrice=-1")]
+    [DataRow("minPrice=1.001")]
+    [DataRow("maxPrice=1.001")]
+    [DataRow("minPrice=10000000000")]
+    [DataRow("maxPrice=10000000000")]
+    [DataRow("minPrice=20&maxPrice=10")]
+    [DataRow("minPrice=abc")]
+    [DataRow("maxPrice=999999999999999999999999999999999999")]
+    [DataRow("onPromotion=maybe")]
+    [DataRow("flavor=abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz123456789")]
+    public async Task InvalidFiltersReturnValidationProblem(string query)
+    {
+        using var client = app.CreateBrowserClient();
+        var response = await client.GetAsync("/api/products?" + query);
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ValidationProblemDetails>();
+        Assert.IsNotNull(problem);
+        Assert.AreEqual(400, problem.Status);
+        Assert.IsNotEmpty(problem.Errors);
+    }
 
     [TestMethod]
     public async Task AnonymousCatalogReturnsOnlyActiveProductsWithCurrentPricesAndAvailability()
