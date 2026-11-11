@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { App } from './app';
-import { AuthService } from './core/auth/auth.service';
+import { AuthService, UserSession } from './core/auth/auth.service';
 import { routes } from './app.routes';
 import { of } from 'rxjs';
 import { CatalogService } from './core/catalog/catalog.service';
@@ -29,6 +29,18 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('shows the product creation link only for administrators', () => {
+    const fixture = TestBed.createComponent(App);
+    const user = TestBed.inject(AuthService).user as WritableSignal<UserSession | null>;
+    const link = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/produtos/novo"]');
+    fixture.detectChanges(); expect(link()).toBeNull();
+    user.set({ id: 'customer', email: 'customer@example.invalid', roles: ['Cliente'] });
+    fixture.detectChanges(); expect(link()).toBeNull();
+    user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] });
+    fixture.detectChanges(); expect(link()?.textContent).toContain('Cadastrar produto');
+    user.set(null); fixture.detectChanges(); expect(link()).toBeNull();
   });
 
   it('should render title', async () => {

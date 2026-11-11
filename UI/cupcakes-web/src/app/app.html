@@ -5,6 +5,9 @@
       <a routerLink="/carrinho" routerLinkActive="active">Carrinho</a>
       @if (auth.user(); as user) {
         <a routerLink="/pedidos" routerLinkActive="active">Meus pedidos</a>
+        @if (user.roles.includes('Administrador')) {
+          <a routerLink="/admin/produtos/novo" routerLinkActive="active">Cadastrar produto</a>
+        }
         <span class="user-email" data-testid="current-user">{{ user.email }}</span>
         <button id="logout-button" type="button" class="button secondary" [disabled]="logoutBusy()" (click)="logout()">
           {{ logoutBusy() ? 'Saindo…' : 'Sair' }}

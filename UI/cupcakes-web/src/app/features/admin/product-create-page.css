@@ -1,0 +1,77 @@
+section {
+  max-width: 48rem;
+  margin: 1.5rem auto;
+}
+
+h1 {
+  color: #452f2b;
+}
+
+p {
+  line-height: 1.6;
+}
+
+fieldset {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+}
+
+legend,
+label {
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 .5rem;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: .65rem;
+  border: 1px solid #8e7770;
+  border-radius: .5rem;
+  background: white;
+  color: #452f2b;
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+:is(select, textarea):focus-visible {
+  outline: 3px solid #a2624a;
+  outline-offset: 3px;
+}
+
+.price-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+
+.image-preview {
+  display: block;
+  max-width: 100%;
+  margin-top: .75rem;
+  border-radius: .5rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 1.25rem;
+}

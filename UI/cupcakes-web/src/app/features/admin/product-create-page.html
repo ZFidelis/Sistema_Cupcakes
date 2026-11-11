@@ -1,0 +1,67 @@
+<section aria-labelledby="admin-product-title">
+  <p class="eyebrow">Administração</p>
+  <h1 id="admin-product-title">Cadastrar cupcake</h1>
+  @if (auth.sessionState() === 'loading') {
+    <p class="feedback" role="status">Consultando sua conta…</p>
+  } @else if (!isAdmin() || blocked()) {
+    <p class="feedback" role="status">{{ error() || 'Esta página é exclusiva para administradores.' }}</p>
+    <a class="button secondary" routerLink="/entrar">Entrar com outra conta</a>
+    <a class="back-link" routerLink="/">Voltar à vitrine</a>
+  } @else if (created(); as product) {
+    <div class="feedback success" role="status">
+      <h2>Produto cadastrado</h2>
+      <p>{{ product.name }} já está na vitrine.</p>
+      <p>Preço atual: {{ product.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }} · Estoque: {{ product.stock }}</p>
+      @if (!product.isAvailable) { <p>Com estoque zero, o produto aparece como indisponível.</p> }
+    </div>
+    <div class="actions">
+      <a class="button secondary" routerLink="/">Ver na vitrine</a>
+      <button class="button" type="button" (click)="reset()">Cadastrar outro cupcake</button>
+    </div>
+  } @else {
+    <p>Cadastre produtos demonstrativos. Todos os novos cupcakes ficam ativos na vitrine.</p>
+    @if (error()) { <p class="feedback error" role="alert">{{ error() }} <a routerLink="/">Conferir vitrine</a></p> }
+    <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="busy()" novalidate>
+      <fieldset [disabled]="busy()">
+        <legend>Dados do produto</legend>
+        <label for="product-name">Nome</label>
+        <input id="product-name" formControlName="name" maxlength="100" [attr.aria-invalid]="invalid('name')" aria-describedby="product-errors" />
+        <label for="product-flavor">Sabor</label>
+        <input id="product-flavor" formControlName="flavor" maxlength="60" [attr.aria-invalid]="invalid('flavor')" aria-describedby="product-errors" />
+        <label for="product-description">Descrição</label>
+        <textarea id="product-description" formControlName="description" rows="4" maxlength="1000" [attr.aria-invalid]="invalid('description')" aria-describedby="product-errors"></textarea>
+        <label for="product-image">Imagem</label>
+        <select id="product-image" formControlName="imagePath"><option value="/images/products/cupcake.svg">Ilustração demonstrativa de cupcake</option></select>
+        <img class="image-preview" src="/images/products/cupcake.svg" alt="Ilustração demonstrativa de cupcake" width="160" height="120" />
+        <p id="price-help">Preços em reais, positivos, até 9999999999,99, com até duas casas decimais. Use vírgula ou ponto, sem separador de milhar.</p>
+        <div class="price-fields">
+          <div>
+            <label for="product-price">Preço normal (R$)</label>
+            <input id="product-price" formControlName="price" inputmode="decimal" [attr.aria-invalid]="invalid('price')" aria-describedby="price-help product-errors" />
+          </div>
+          <div>
+            <label for="product-promotion">Preço promocional (R$), opcional</label>
+            <input id="product-promotion" formControlName="promotionalPrice" inputmode="decimal" [attr.aria-invalid]="invalid('promotionalPrice') || (submitted() && form.hasError('promotion'))" aria-describedby="price-help product-errors" />
+          </div>
+        </div>
+        <label for="product-stock">Quantidade em estoque</label>
+        <input id="product-stock" formControlName="stock" inputmode="numeric" [attr.aria-invalid]="invalid('stock')" aria-describedby="stock-help product-errors" />
+        <p id="stock-help">Inteiro de zero a 2147483647. Estoque zero mantém o cupcake visível como indisponível.</p>
+        <div id="product-errors">
+          @if (submitted() && form.invalid) {
+            <div class="feedback error" role="alert">
+              @if (invalid('name')) { <p>Informe um nome de 1 a 100 caracteres.</p> }
+              @if (invalid('flavor')) { <p>Informe um sabor de 1 a 60 caracteres.</p> }
+              @if (invalid('description')) { <p>Informe uma descrição de 1 a 1.000 caracteres.</p> }
+              @if (invalid('price') || invalid('promotionalPrice')) { <p>Confira os preços: valor positivo, até duas casas decimais e dentro do limite informado.</p> }
+              @if (form.hasError('promotion')) { <p>A promoção deve ser menor que o preço normal.</p> }
+              @if (invalid('stock')) { <p>Informe um estoque inteiro de zero a 2147483647.</p> }
+            </div>
+          }
+        </div>
+        <button class="button" type="submit">{{ busy() ? 'Cadastrando…' : 'Cadastrar produto' }}</button>
+      </fieldset>
+    </form>
+    <a class="back-link" routerLink="/">Voltar à vitrine</a>
+  }
+</section>
