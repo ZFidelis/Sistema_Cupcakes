@@ -10,6 +10,7 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
     : IdentityDbContext<IdentityUser>(options)
 {
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
@@ -21,6 +22,7 @@ public sealed class CupcakesDbContext(DbContextOptions<CupcakesDbContext> option
     {
         base.OnModelCreating(builder);
         builder.ApplyConfiguration(new ProductConfiguration());
+        builder.ApplyConfiguration(new ProductReviewConfiguration());
         builder.ApplyConfiguration(new CartConfiguration());
         builder.ApplyConfiguration(new CartItemConfiguration());
         builder.ApplyConfiguration(new OrderConfiguration());

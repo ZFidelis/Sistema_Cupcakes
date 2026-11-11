@@ -1,5 +1,20 @@
 @baseUrl = http://127.0.0.1:5080
 
+GET {{baseUrl}}/api/products/b8b95c22-a515-4f4b-a750-57343a6b0101/reviews
+Accept: application/json
+
+GET {{baseUrl}}/api/products/b8b95c22-a515-4f4b-a750-57343a6b0101/reviews/mine
+Accept: application/json
+
+PUT {{baseUrl}}/api/products/b8b95c22-a515-4f4b-a750-57343a6b0101/reviews/mine
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
+
+{
+  "rating": 5,
+  "comment": "Comentario demonstrativo."
+}
+
 GET {{baseUrl}}/api/admin/reports/sales?date=2026-11-11&period=day
 Accept: application/json
 
