@@ -60,6 +60,7 @@ builder.Services.AddScoped<CheckoutPreviewService>();
 builder.Services.AddScoped<CheckoutConfirmationService>();
 builder.Services.AddScoped<SimulatedPaymentService>();
 builder.Services.AddScoped<OrderQueryService>();
+builder.Services.AddScoped<AdminOrderQueryService>();
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-XSRF-TOKEN";

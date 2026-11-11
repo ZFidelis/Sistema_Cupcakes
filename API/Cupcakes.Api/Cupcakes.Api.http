@@ -1,5 +1,11 @@
 @baseUrl = http://127.0.0.1:5080
 
+GET {{baseUrl}}/api/admin/orders
+Accept: application/json
+
+GET {{baseUrl}}/api/admin/orders/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
 DELETE {{baseUrl}}/api/admin/products/00000000-0000-0000-0000-000000000000
 X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
 

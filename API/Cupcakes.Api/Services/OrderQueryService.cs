@@ -21,9 +21,6 @@ public sealed class OrderQueryService(CupcakesDbContext db)
             .SingleOrDefaultAsync(order => order.Id == orderId && order.UserId == userId, ct);
         if (order is null) return null;
 
-        return new OrderDetailResponse(OrderResponseMapper.Map(order),
-            order.StatusHistory.OrderBy(entry => entry.ChangedAt).ThenBy(entry => entry.Id)
-                .Select(entry => new OrderStatusResponse(entry.Status.ToString(), entry.ChangedAt)).ToArray(),
-            true, "Pedido com pagamento inteiramente simulado. Nenhuma transacao financeira real foi processada.");
+        return OrderResponseMapper.MapDetail(order);
     }
 }
