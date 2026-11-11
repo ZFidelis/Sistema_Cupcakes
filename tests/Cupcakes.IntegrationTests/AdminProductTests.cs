@@ -42,6 +42,7 @@ public sealed class AdminProductTests
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
         await db.Orders.ExecuteDeleteAsync();
+        await db.Carts.ExecuteDeleteAsync();
         await db.Products.ExecuteDeleteAsync();
     }
 
@@ -75,6 +76,94 @@ public sealed class AdminProductTests
         var product = new Product("Original", "Morango", "Descricao original", Product.DemoImagePath, 20m, 18m, 9, active);
         db.Products.Add(product); await db.SaveChangesAsync();
         return product;
+    }
+
+    [TestMethod]
+    public async Task DeactivationIsRepeatableAndPreservesProductAndHistoricalOrder()
+    {
+        var product = await ExistingProductAsync();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        var owner = await db.Users.Where(user => user.Email == CustomerEmail).Select(user => user.Id).SingleAsync();
+        var order = new Order(owner, SimulatedPaymentMethod.Pix,
+            new OrderAddress("Pessoa", "Rua", "1", "Bairro", "Cidade", "SP", "01234567", null),
+            [new OrderItem(product.Id, product.Name, product.Price, product.EffectivePrice, 2)]);
+        db.Orders.Add(order); await db.SaveChangesAsync();
+        using var client = await LoginAsync(AdminEmail);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var response = await client.DeleteAsync($"/api/admin/products/{product.Id}");
+            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+            Assert.AreEqual("", await response.Content.ReadAsStringAsync());
+        }
+        var saved = await db.Products.AsNoTracking().SingleAsync();
+        Assert.AreEqual(product.Id, saved.Id);
+        Assert.AreEqual(product.Name, saved.Name);
+        Assert.AreEqual(20m, saved.Price);
+        Assert.AreEqual(18m, saved.PromotionalPrice);
+        Assert.AreEqual(9, saved.Stock);
+        Assert.IsFalse(saved.IsActive);
+        var listed = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!.Single();
+        Assert.AreEqual(product.Id, listed.Id);
+        Assert.IsFalse(listed.IsActive || listed.IsAvailable);
+        using var visitor = app.CreateBrowserClient();
+        Assert.HasCount(0, (await visitor.GetFromJsonAsync<ProductResponse[]>("/api/products?flavor=Morango&onPromotion=true"))!);
+        db.ChangeTracker.Clear();
+        var historical = await db.Orders.Include(value => value.Items).SingleAsync();
+        Assert.AreEqual(order.Id, historical.Id);
+        Assert.AreEqual(36m, historical.Total);
+        Assert.AreEqual("Original", historical.Items.Single().ProductName);
+        Assert.AreEqual(product.Id, historical.Items.Single().ProductId);
+        Assert.AreEqual(20m, historical.Items.Single().OriginalUnitPrice);
+        Assert.AreEqual(18m, historical.Items.Single().AppliedUnitPrice);
+    }
+
+    [TestMethod]
+    public async Task DeactivatedProductRemainsInCartButCannotBeAddedOrPurchased()
+    {
+        var product = await ExistingProductAsync();
+        using var customer = await LoginAsync(CustomerEmail);
+        Assert.AreEqual(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/cart/items", new { productId = product.Id, quantity = 1 })).StatusCode);
+        using var admin = await LoginAsync(AdminEmail);
+        Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/admin/products/{product.Id}")).StatusCode);
+        var cart = (await customer.GetFromJsonAsync<CartResponse>("/api/cart"))!;
+        Assert.HasCount(1, cart.Items);
+        Assert.IsFalse(cart.Items.Single().IsAvailable);
+        Assert.IsTrue(cart.HasUnavailableItems);
+        Assert.AreEqual(HttpStatusCode.Conflict, (await customer.PostAsJsonAsync("/api/cart/items", new { productId = product.Id, quantity = 1 })).StatusCode);
+        var address = new { recipient = "Pessoa", street = "Rua", number = "1", neighborhood = "Bairro", city = "Cidade", state = "SP", postalCode = "01234567" };
+        Assert.AreEqual(HttpStatusCode.Conflict, (await customer.PostAsJsonAsync("/api/checkout/preview", new { address })).StatusCode);
+        var confirmation = await customer.PostAsJsonAsync("/api/checkout/confirm", new {
+            confirmationId = Guid.NewGuid(), address, paymentMethod = "Pix", simulation = "Aprovar",
+            expectedItems = new[] { new { productId = product.Id, quantity = 1, price = 20m, effectivePrice = 18m } }
+        });
+        Assert.AreEqual(HttpStatusCode.Conflict, confirmation.StatusCode);
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        Assert.AreEqual(0, await db.Orders.CountAsync());
+        Assert.AreEqual(9, await db.Products.Select(value => value.Stock).SingleAsync());
+        Assert.AreEqual(1, await db.CartItems.CountAsync());
+    }
+
+    [TestMethod]
+    public async Task DeactivatingMissingProductReturnsNotFound()
+    {
+        using var client = await LoginAsync(AdminEmail);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.DeleteAsync($"/api/admin/products/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    [DataRow("adminWithoutToken", 400)]
+    public async Task DeactivationRequiresAdministratorAndWriteToken(string actor, int status)
+    {
+        var product = await ExistingProductAsync();
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(actor == "customer" ? CustomerEmail : AdminEmail);
+        if (actor == "adminWithoutToken") client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        Assert.AreEqual((HttpStatusCode)status, (await client.DeleteAsync($"/api/admin/products/{product.Id}")).StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.IsTrue(await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.Select(value => value.IsActive).SingleAsync());
     }
 
     [TestMethod]

@@ -52,6 +52,8 @@ public sealed class Product
     public bool IsActive { get; private set; }
     public decimal EffectivePrice => PromotionalPrice ?? Price;
 
+    public void Deactivate() => IsActive = false;
+
     private static string RequiredText(string value, int maxLength, string parameter)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Trim().Length > maxLength)

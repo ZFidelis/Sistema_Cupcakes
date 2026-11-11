@@ -12,6 +12,25 @@ namespace Cupcakes.Api.Controllers;
 [Route("api/admin/products")]
 public sealed class AdminProductsController(CupcakesDbContext db) : ControllerBase
 {
+    [HttpDelete("{productId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Deactivate(Guid productId, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var product = await db.Products.FromSqlInterpolated(
+            $"SELECT * FROM \"Products\" WHERE \"Id\" = {productId} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (product is null) return Problem(statusCode: 404, title: "Produto nao encontrado.");
+        product.Deactivate();
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType<AdminProductResponse[]>(StatusCodes.Status200OK)]
