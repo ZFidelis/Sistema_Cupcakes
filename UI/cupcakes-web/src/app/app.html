@@ -7,6 +7,7 @@
         <a routerLink="/pedidos" routerLinkActive="active">Meus pedidos</a>
         @if (user.roles.includes('Administrador')) {
           <a routerLink="/admin/produtos" routerLinkActive="active">Produtos</a>
+          <a routerLink="/admin/pedidos" routerLinkActive="active">Pedidos da loja</a>
         }
         <span class="user-email" data-testid="current-user">{{ user.email }}</span>
         <button id="logout-button" type="button" class="button secondary" [disabled]="logoutBusy()" (click)="logout()">

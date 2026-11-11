@@ -14,6 +14,8 @@ export const routes: Routes = [
   { path: 'admin/produtos/novo', component: ProductCreatePage },
   { path: 'admin/produtos/:productId/editar', component: ProductCreatePage },
   { path: 'admin/produtos', component: ProductsPage },
+  { path: 'admin/pedidos', component: OrdersPage, data: { administrative: true } },
+  { path: 'admin/pedidos/:orderId', component: OrdersPage, data: { administrative: true } },
   { path: 'pedidos', component: OrdersPage },
   { path: 'pedidos/:orderId', component: OrdersPage },
   { path: 'entrar', component: AuthPage, data: { mode: 'login' } },

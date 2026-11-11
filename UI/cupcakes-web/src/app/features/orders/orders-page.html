@@ -1,16 +1,19 @@
 <section aria-labelledby="orders-title" [attr.aria-busy]="state() === 'loading'">
-  <h1 id="orders-title">{{ orderId() ? 'Detalhes do pedido' : 'Meus pedidos' }}</h1>
+  @if (administrative) { <p class="eyebrow">Administração</p> }
+  <h1 id="orders-title">{{ orderId() ? 'Detalhes do pedido' : (administrative ? 'Pedidos da loja' : 'Meus pedidos') }}</h1>
   <p>Compras demonstrativas com pagamento simulado, sem cobrança ou rastreamento real.</p>
   <div class="order-actions">
-    @if (orderId()) { <a routerLink="/pedidos">Voltar aos meus pedidos</a> }
+    @if (orderId()) { <a [routerLink]="listRoute">{{ administrative ? 'Voltar aos pedidos da loja' : 'Voltar aos meus pedidos' }}</a> }
     <a routerLink="/">Voltar à vitrine</a>
-    @if (auth.user() && state() !== 'anonymous') {
+    @if (canRead() && state() !== 'anonymous' && state() !== 'denied') {
       <button id="refresh-orders" class="button secondary" type="button" [disabled]="state() === 'loading'" (click)="refresh()">{{ orderId() ? 'Atualizar pedido' : 'Atualizar pedidos' }}</button>
     }
   </div>
   @if (message()) { <p class="feedback error" role="alert">{{ message() }}</p> }
   @if (auth.sessionState() === 'loading' || state() === 'loading') {
-    <p class="feedback" role="status">Carregando seus pedidos…</p>
+    <p class="feedback" role="status">{{ administrative ? 'Carregando pedidos da loja…' : 'Carregando seus pedidos…' }}</p>
+  } @else if (state() === 'denied') {
+    <p class="feedback">Esta página é exclusiva para administradores. <a routerLink="/entrar">Entrar com outra conta</a></p>
   } @else if (state() === 'anonymous') {
     <p class="feedback">Entre na sua conta para consultar seus pedidos. <a routerLink="/entrar">Entrar</a></p>
   } @else if (state() === 'error') {
@@ -19,19 +22,20 @@
       <button id="retry-orders" class="button secondary" type="button" (click)="refresh()">Tentar novamente</button>
     </div>
   } @else if (state() === 'missing') {
-    <p class="feedback" role="status">Pedido não encontrado ou indisponível para sua conta.</p>
+    <p class="feedback" role="status">{{ administrative ? 'Pedido não encontrado.' : 'Pedido não encontrado ou indisponível para sua conta.' }}</p>
   } @else if (!orderId()) {
     @if (list().length === 0) {
-      <p class="feedback" role="status">Você ainda não tem pedidos. Escolha seus cupcakes na vitrine para começar.</p>
+      <p class="feedback" role="status">{{ administrative ? 'Nenhum pedido registrado na loja.' : 'Você ainda não tem pedidos. Escolha seus cupcakes na vitrine para começar.' }}</p>
     } @else {
-      <ul class="order-list" aria-label="Seus pedidos, mais recentes primeiro">
+      <ul class="order-list" [attr.aria-label]="administrative ? 'Pedidos da loja, mais recentes primeiro' : 'Seus pedidos, mais recentes primeiro'">
         @for (item of list(); track item.id) {
           <li class="order-card">
             <h2 class="order-number">Pedido {{ item.id }}</h2>
+            @if (administrative) { <p class="customer-email">Cliente: {{ customerEmails()[item.id] }}</p> }
             <p>{{ item.createdAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }} · {{ statusLabel(item.status) }}</p>
             <p>{{ item.itemCount }} cupcake(s) · {{ item.paymentMethod === 'Pix' ? 'PIX' : 'Cartão' }} simulado</p>
             <p class="total">Total: {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
-            <a class="button secondary" [routerLink]="['/pedidos', item.id]">Ver detalhes</a>
+            <a class="button secondary" [routerLink]="[listRoute, item.id]">Ver detalhes</a>
           </li>
         }
       </ul>
@@ -39,6 +43,7 @@
   } @else if (detail(); as current) {
     <article class="order-card" aria-labelledby="order-number">
       <h2 id="order-number" class="order-number">Pedido {{ current.order.id }}</h2>
+      @if (administrative) { <p class="customer-email">Cliente: {{ customerEmail() }} (e-mail atual da conta)</p> }
       <p>{{ current.order.createdAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p>
       <p class="order-status">Status: {{ statusLabel(current.order.status) }}</p>
       <p>{{ current.order.paymentMethod === 'Pix' ? 'PIX' : 'Cartão' }} · {{ current.order.paymentResult }} na simulação</p>

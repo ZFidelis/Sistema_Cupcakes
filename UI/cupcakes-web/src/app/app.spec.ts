@@ -35,12 +35,14 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const user = TestBed.inject(AuthService).user as WritableSignal<UserSession | null>;
     const link = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/produtos"]');
-    fixture.detectChanges(); expect(link()).toBeNull();
+    const ordersLink = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/pedidos"]');
+    fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
     user.set({ id: 'customer', email: 'customer@example.invalid', roles: ['Cliente'] });
-    fixture.detectChanges(); expect(link()).toBeNull();
+    fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
     user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] });
     fixture.detectChanges(); expect(link()?.textContent).toContain('Produtos');
-    user.set(null); fixture.detectChanges(); expect(link()).toBeNull();
+    expect(ordersLink()?.textContent).toContain('Pedidos da loja');
+    user.set(null); fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
   });
 
   it('should render title', async () => {
