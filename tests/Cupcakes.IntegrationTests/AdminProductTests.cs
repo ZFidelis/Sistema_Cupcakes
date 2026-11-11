@@ -67,6 +67,82 @@ public sealed class AdminProductTests
     }
 
     [TestMethod]
+    public async Task AdministrativeListIncludesInactiveProductsAndOrdersByNameThenId()
+    {
+        var inactive = new Product("Cupcake A", "Chocolate", "Descricao inativa", Product.DemoImagePath, 20m, 15m, 9, false);
+        var available = new Product("Cupcake B", "Morango", "Descricao ativa", Product.DemoImagePath, 12.50m, null, 3);
+        var unavailable = new Product("Cupcake B", "Baunilha", "Sem estoque", Product.DemoImagePath, 10m, null, 0);
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        db.Products.AddRange(unavailable, available, inactive);
+        await db.SaveChangesAsync();
+        using var client = await LoginAsync(AdminEmail);
+        client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        var response = await client.GetAsync("/api/admin/products");
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(response.Headers.CacheControl!.NoStore);
+        var products = (await response.Content.ReadFromJsonAsync<AdminProductResponse[]>())!;
+        var expected = new[] { inactive, available, unavailable }.OrderBy(x => x.Name).ThenBy(x => x.Id).ToArray();
+        CollectionAssert.AreEqual(expected.Select(x => x.Id).ToArray(), products.Select(x => x.Id).ToArray());
+        foreach (var product in expected)
+        {
+            var actual = products.Single(x => x.Id == product.Id);
+            Assert.AreEqual(new AdminProductResponse(product.Id, product.Name, product.Flavor, product.Description,
+                product.ImagePath, product.Price, product.PromotionalPrice, product.EffectivePrice, product.Stock,
+                product.IsActive, product.IsActive && product.Stock > 0), actual);
+        }
+        Assert.IsFalse(products.Single(x => x.Id == inactive.Id).IsAvailable);
+        Assert.IsFalse(products.Single(x => x.Id == unavailable.Id).IsAvailable);
+        var repeated = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!;
+        CollectionAssert.AreEqual(products, repeated);
+        Assert.AreEqual(12, await db.Products.SumAsync(x => x.Stock));
+        Assert.AreEqual(3, await db.Products.CountAsync());
+        using var visitor = app.CreateBrowserClient();
+        var publicProducts = (await visitor.GetFromJsonAsync<ProductResponse[]>("/api/products"))!;
+        Assert.HasCount(2, publicProducts);
+        Assert.IsFalse(publicProducts.Any(x => x.Id == inactive.Id));
+    }
+
+    [TestMethod]
+    public async Task AdministrativeListReturnsEmptyArrayWithoutProducts()
+    {
+        using var client = await LoginAsync(AdminEmail);
+        var response = await client.GetAsync("/api/admin/products");
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.HasCount(0, (await response.Content.ReadFromJsonAsync<AdminProductResponse[]>())!);
+    }
+
+    [TestMethod]
+    public async Task AdministrativeListReadsCurrentPricesStockAndActiveFlag()
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        db.Products.Add(new Product("Cupcake", "Chocolate", "Descricao", Product.DemoImagePath, 20m, null, 4));
+        await db.SaveChangesAsync();
+        using var client = await LoginAsync(AdminEmail);
+        var before = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!.Single();
+        Assert.IsTrue(before.IsActive && before.IsAvailable);
+        await db.Products.ExecuteUpdateAsync(update => update.SetProperty(x => x.Price, 30m)
+            .SetProperty(x => x.PromotionalPrice, 25m).SetProperty(x => x.Stock, 2).SetProperty(x => x.IsActive, false));
+        var after = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!.Single();
+        Assert.AreEqual(before.Id, after.Id);
+        Assert.AreEqual(30m, after.Price);
+        Assert.AreEqual(25m, after.PromotionalPrice);
+        Assert.AreEqual(25m, after.EffectivePrice);
+        Assert.AreEqual(2, after.Stock);
+        Assert.IsFalse(after.IsActive || after.IsAvailable);
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    public async Task NonAdministratorsCannotReadAdministrativeList(string actor, int status)
+    {
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(CustomerEmail);
+        Assert.AreEqual((HttpStatusCode)status, (await client.GetAsync("/api/admin/products")).StatusCode);
+    }
+
+    [TestMethod]
     [DataRow(false, 7)]
     [DataRow(true, 7)]
     [DataRow(true, 0)]

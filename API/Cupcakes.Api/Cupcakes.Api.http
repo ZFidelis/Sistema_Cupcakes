@@ -1,5 +1,8 @@
 @baseUrl = http://127.0.0.1:5080
 
+GET {{baseUrl}}/api/admin/products
+Accept: application/json
+
 POST {{baseUrl}}/api/admin/products
 Content-Type: application/json
 X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
