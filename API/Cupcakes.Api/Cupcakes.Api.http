@@ -21,6 +21,9 @@ Accept: application/json
 GET {{baseUrl}}/api/admin/reports/sales?date=2026-11-11&period=week
 Accept: application/json
 
+GET {{baseUrl}}/api/admin/reports/sales/export.xlsx?date=2026-11-11&period=week
+Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
 PUT {{baseUrl}}/api/admin/orders/00000000-0000-0000-0000-000000000000/status
 Content-Type: application/json
 X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
