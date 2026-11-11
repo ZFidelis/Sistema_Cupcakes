@@ -62,6 +62,7 @@ builder.Services.AddScoped<SimulatedPaymentService>();
 builder.Services.AddScoped<OrderQueryService>();
 builder.Services.AddScoped<AdminOrderQueryService>();
 builder.Services.AddScoped<OrderStatusService>();
+builder.Services.AddScoped<SalesReportService>();
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-XSRF-TOKEN";

@@ -1,0 +1,217 @@
+using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
+using Cupcakes.Api.Contracts;
+using Cupcakes.Api.Data;
+using Cupcakes.Api.Domain;
+using Cupcakes.Api.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Cupcakes.IntegrationTests;
+
+[TestClass]
+[DoNotParallelize]
+public sealed class SalesReportTests
+{
+    private static TestApplication app = null!;
+    private const string Admin = "sales-admin@example.invalid";
+    private const string Customer = "sales-customer@example.invalid";
+    private const string Password = "RelatorioTeste123";
+
+    [ClassInitialize]
+    public static async Task Initialize(TestContext _)
+    {
+        app = await TestApplication.CreateAsync();
+        using var scope = app.Services.CreateScope();
+        Assert.IsTrue((await scope.ServiceProvider.GetRequiredService<AdminProvisioningService>().ProvisionAsync(Admin, Password)).Succeeded);
+        Assert.IsTrue((await scope.ServiceProvider.GetRequiredService<RegistrationService>()
+            .RegisterAsync(new RegisterRequest { Email = Customer, Password = Password }, default)).Result.Succeeded);
+    }
+
+    [ClassCleanup]
+    public static async Task Cleanup() { if (app is not null) await app.DisposeAsync(); }
+
+    [TestInitialize]
+    public async Task ClearOrders()
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Orders.ExecuteDeleteAsync(); await db.Carts.ExecuteDeleteAsync(); await db.Products.ExecuteDeleteAsync();
+    }
+
+    private static async Task<HttpClient> LoginAsync(string email)
+    {
+        var client = app.CreateBrowserClient();
+        var token = await client.GetFromJsonAsync<AntiforgeryResponse>("/api/auth/antiforgery");
+        client.DefaultRequestHeaders.Add("X-XSRF-TOKEN", token!.RequestToken);
+        Assert.AreEqual(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password })).StatusCode);
+        client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        return client;
+    }
+
+    private static async Task<Order> SeedAsync(string utc, int quantity = 2, decimal price = 14m, decimal? promotion = 11.90m)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        var owner = await db.Users.Where(user => user.Email == Customer).Select(user => user.Id).SingleAsync();
+        var product = new Product("Produto historico", "Morango", "Ficticio", Product.DemoImagePath, price, promotion, Math.Max(quantity, 10));
+        db.Products.Add(product);
+        var order = new Order(owner, SimulatedPaymentMethod.Pix,
+            new OrderAddress("Pessoa", "Rua", "1", "Bairro", "Cidade", "SP", "01234567", null),
+            [new OrderItem(product.Id, product.Name, price, promotion ?? price, quantity)]);
+        db.Orders.Add(order); await db.SaveChangesAsync();
+        var createdAt = DateTimeOffset.Parse(utc, CultureInfo.InvariantCulture).ToUniversalTime();
+        await db.Orders.Where(value => value.Id == order.Id).ExecuteUpdateAsync(set => set.SetProperty(value => value.CreatedAt, createdAt));
+        return order;
+    }
+
+    private static async Task<SalesReportResponse> ReportAsync(HttpClient client, string query)
+    {
+        var response = await client.GetAsync("/api/admin/reports/sales?" + query);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(response.Headers.CacheControl!.NoStore);
+        return (await response.Content.ReadFromJsonAsync<SalesReportResponse>())!;
+    }
+
+    [TestMethod]
+    [DataRow("day", 1)]
+    [DataRow("week", 7)]
+    public async Task EmptyReportReturnsZeroForEveryDay(string period, int days)
+    {
+        using var client = await LoginAsync(Admin);
+        var result = await ReportAsync(client, "date=2026-11-11&period=" + period);
+        Assert.IsTrue(result.IsEmpty && result.IsSimulation);
+        Assert.AreEqual("BRL", result.Currency); Assert.AreEqual("America/Sao_Paulo", result.TimeZone);
+        Assert.AreEqual(0L, result.OrderCount); Assert.AreEqual(0L, result.ItemCount);
+        Assert.AreEqual(0m, result.Subtotal); Assert.AreEqual(0m, result.Discount); Assert.AreEqual(0m, result.Total);
+        Assert.HasCount(days, result.Days);
+        Assert.IsTrue(result.Days.All(day => day.OrderCount == 0 && day.Total == 0));
+    }
+
+    [TestMethod]
+    public async Task DailyReportUsesInclusiveLocalMidnightAndExclusiveNextMidnight()
+    {
+        await SeedAsync("2026-11-11T02:59:59.999999Z");
+        await SeedAsync("2026-11-11T03:00:00Z");
+        await SeedAsync("2026-11-12T02:59:59.999999Z", 1, promotion: null);
+        await SeedAsync("2026-11-12T03:00:00Z");
+        using var client = await LoginAsync(Admin);
+        var result = await ReportAsync(client, "date=2026-11-11");
+        Assert.AreEqual("day", result.Period);
+        Assert.AreEqual(new DateOnly(2026, 11, 11), result.StartDate); Assert.AreEqual(result.StartDate, result.EndDate);
+        Assert.IsFalse(result.IsEmpty);
+        Assert.AreEqual(2L, result.OrderCount); Assert.AreEqual(3L, result.ItemCount);
+        Assert.AreEqual(42m, result.Subtotal); Assert.AreEqual(4.20m, result.Discount); Assert.AreEqual(37.80m, result.Total);
+        Assert.AreEqual(result.Total, result.Days.Single().Total);
+    }
+
+    [TestMethod]
+    public async Task WeekStartsOnMondayAndIncludesSundayAcrossYearBoundary()
+    {
+        await SeedAsync("2025-12-29T02:59:59.999999Z");
+        await SeedAsync("2025-12-29T03:00:00Z");
+        await SeedAsync("2026-01-05T02:59:59.999999Z");
+        await SeedAsync("2026-01-05T03:00:00Z");
+        using var client = await LoginAsync(Admin);
+        var result = await ReportAsync(client, "date=2026-01-04&period=week");
+        Assert.AreEqual(new DateOnly(2025, 12, 29), result.StartDate);
+        Assert.AreEqual(new DateOnly(2026, 1, 4), result.EndDate);
+        Assert.AreEqual(2L, result.OrderCount); Assert.AreEqual(47.60m, result.Total);
+        Assert.AreEqual(1L, result.Days[0].OrderCount); Assert.AreEqual(1L, result.Days[6].OrderCount);
+        Assert.IsTrue(result.Days.Skip(1).Take(5).All(day => day.OrderCount == 0));
+        var sameWeek = await ReportAsync(client, "date=2025-12-29&period=week");
+        CollectionAssert.AreEqual(result.Days, sameWeek.Days);
+    }
+
+    [TestMethod]
+    public async Task HistoricalDaylightSavingMidnightIsHandled()
+    {
+        await SeedAsync("2018-11-04T02:59:59.999999Z");
+        await SeedAsync("2018-11-04T03:00:00Z");
+        await SeedAsync("2018-11-05T01:59:59.999999Z");
+        await SeedAsync("2018-11-05T02:00:00Z");
+        using var client = await LoginAsync(Admin);
+        Assert.AreEqual(2L, (await ReportAsync(client, "date=2018-11-04")).OrderCount);
+    }
+
+    [TestMethod]
+    public async Task HistoricalPricesAndAllDeliveryStatesRemainInSalesWithoutMutation()
+    {
+        var order = await SeedAsync("2026-11-11T12:00:00Z");
+        using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Products.ExecuteUpdateAsync(set => set.SetProperty(value => value.Price, 30m).SetProperty(value => value.IsActive, false));
+        using var client = await LoginAsync(Admin);
+        foreach (var state in Enum.GetValues<OrderStatus>())
+        {
+            // Preparacao de estado apenas para conferir que etapa de entrega nao muda a venda aprovada.
+            await db.Orders.ExecuteUpdateAsync(set => set.SetProperty(value => value.Status, state));
+            var result = await ReportAsync(client, "date=2026-11-11");
+            Assert.AreEqual(23.80m, result.Total); Assert.AreEqual(4.20m, result.Discount); Assert.AreEqual(1L, result.OrderCount);
+            Assert.AreEqual(state, await db.Orders.Select(value => value.Status).SingleAsync());
+        }
+        Assert.AreEqual(10, await db.Products.Select(value => value.Stock).SingleAsync());
+        Assert.AreEqual(1, await db.OrderStatusHistory.CountAsync()); Assert.AreEqual(0, await db.CartItems.CountAsync());
+        Assert.AreEqual(order.Id, await db.Orders.Select(value => value.Id).SingleAsync());
+    }
+
+    [TestMethod]
+    public async Task ItemCountsUseLongAndMoneyKeepsCentPrecision()
+    {
+        await SeedAsync("2026-11-11T12:00:00Z", int.MaxValue, .02m, .01m);
+        await SeedAsync("2026-11-11T13:00:00Z", int.MaxValue, .02m, .01m);
+        using var client = await LoginAsync(Admin);
+        var result = await ReportAsync(client, "date=2026-11-11");
+        Assert.AreEqual(4294967294L, result.ItemCount);
+        Assert.AreEqual(42949672.94m, result.Total);
+        Assert.AreEqual(result.Subtotal - result.Discount, result.Total);
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    public async Task ReportRequiresAdministrator(string actor, int status)
+    {
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(Customer);
+        Assert.AreEqual((HttpStatusCode)status, (await client.GetAsync("/api/admin/reports/sales?date=2026-11-11")).StatusCode);
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("date=invalid")]
+    [DataRow("date=2026-02-29")]
+    [DataRow("date=11/11/2026")]
+    [DataRow("date=0001-01-01")]
+    [DataRow("date=9999-12-31")]
+    [DataRow("date=2026-11-11&period=month")]
+    [DataRow("date=2026-11-11&period=")]
+    public async Task InvalidQueryReturnsValidationProblem(string query)
+    {
+        using var client = await LoginAsync(Admin);
+        var response = await client.GetAsync("/api/admin/reports/sales?" + query);
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.IsNotEmpty((await response.Content.ReadFromJsonAsync<ValidationProblemDetails>())!.Errors);
+    }
+
+    [TestMethod]
+    public async Task DeclinedCheckoutDoesNotCountAsSale()
+    {
+        using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        var product = new Product("Teste", "Chocolate", "Ficticio", Product.DemoImagePath, 12.50m, null, 4);
+        db.Products.Add(product); await db.SaveChangesAsync();
+        using var customer = await LoginAsync(Customer);
+        var token = await customer.GetFromJsonAsync<AntiforgeryResponse>("/api/auth/antiforgery");
+        customer.DefaultRequestHeaders.Add("X-XSRF-TOKEN", token!.RequestToken);
+        Assert.AreEqual(HttpStatusCode.OK, (await customer.PostAsJsonAsync("/api/cart/items", new { productId = product.Id, quantity = 1 })).StatusCode);
+        var response = await customer.PostAsJsonAsync("/api/checkout/confirm", new {
+            confirmationId = Guid.NewGuid(), address = new { recipient = "Pessoa", street = "Rua", number = "1", neighborhood = "Bairro", city = "Cidade", state = "SP", postalCode = "01234567" },
+            paymentMethod = "Pix", simulation = "Recusar", expectedItems = new[] { new { productId = product.Id, quantity = 1, price = 12.50m, effectivePrice = 12.50m } }
+        });
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.AreEqual("declined", (await response.Content.ReadFromJsonAsync<CheckoutConfirmationResponse>())!.Code);
+        using var admin = await LoginAsync(Admin);
+        Assert.IsTrue((await ReportAsync(admin, "date=2026-11-11")).IsEmpty);
+        Assert.AreEqual(0, await db.Orders.CountAsync()); Assert.AreEqual(4, await db.Products.Select(value => value.Stock).SingleAsync());
+    }
+}
