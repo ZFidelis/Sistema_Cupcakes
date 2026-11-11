@@ -36,12 +36,15 @@ describe('App', () => {
     const user = TestBed.inject(AuthService).user as WritableSignal<UserSession | null>;
     const link = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/produtos"]');
     const ordersLink = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/pedidos"]');
+    const reportLink = () => (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/relatorios/vendas"]');
     fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
     user.set({ id: 'customer', email: 'customer@example.invalid', roles: ['Cliente'] });
     fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
+    expect(reportLink()).toBeNull();
     user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] });
     fixture.detectChanges(); expect(link()?.textContent).toContain('Produtos');
     expect(ordersLink()?.textContent).toContain('Pedidos da loja');
+    expect(reportLink()?.textContent).toContain('Relatório de vendas');
     user.set(null); fixture.detectChanges(); expect(link()).toBeNull(); expect(ordersLink()).toBeNull();
   });
 

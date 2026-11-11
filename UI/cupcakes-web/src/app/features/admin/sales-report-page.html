@@ -1,0 +1,58 @@
+<section aria-labelledby="sales-title">
+  <p class="eyebrow">Administração</p>
+  <h1 id="sales-title">Vendas simuladas</h1>
+  @if (auth.sessionState() === 'loading') {
+    <p class="feedback" role="status">Consultando sua conta…</p>
+  } @else if (!isAdmin() || state() === 'denied') {
+    <p class="feedback" role="status">{{ message() || 'Esta página é exclusiva para administradores.' }}</p>
+    <a class="button secondary" routerLink="/entrar">Entrar com outra conta</a>
+  } @else {
+    <p>Pedidos com pagamento simulado aprovado, pela data da compra no horário de São Paulo. Não representa movimentação financeira real.</p>
+    <form [formGroup]="form" (ngSubmit)="apply()" novalidate>
+      <div class="field">
+        <label for="sales-date">Data de referência</label>
+        <input id="sales-date" type="date" min="0002-01-01" max="9998-12-31" formControlName="date" aria-describedby="sales-help sales-errors" [attr.aria-invalid]="submitted() && form.controls.date.invalid" />
+      </div>
+      <div class="field">
+        <label for="sales-period">Período</label>
+        <select id="sales-period" formControlName="period"><option value="day">Diário</option><option value="week">Semanal</option></select>
+      </div>
+      <button class="button" type="submit">Gerar relatório</button>
+    </form>
+    <p id="sales-help">No semanal, a data seleciona a semana de segunda a domingo. Alterar os campos só atualiza os dados ao gerar o relatório.</p>
+    <div id="sales-errors">
+      @if (submitted() && form.invalid) { <p class="feedback error" role="alert">Informe uma data válida entre os anos 0002 e 9998 e escolha Diário ou Semanal.</p> }
+    </div>
+    @if (state() === 'loading') {
+      <p class="feedback" role="status">Carregando relatório…</p>
+    } @else if (state() === 'error') {
+      <div class="feedback error" role="alert"><p>{{ message() || 'Não foi possível consultar as vendas simuladas.' }}</p>
+        <button id="retry-sales" class="button secondary" type="button" (click)="load()">Tentar novamente</button>
+      </div>
+    } @else if (report(); as current) {
+      <h2>{{ current.period === 'week' ? 'Relatório semanal' : 'Relatório diário' }}: {{ dateLabel(current.startDate) }} a {{ dateLabel(current.endDate) }}</h2>
+      <p>Horário de São Paulo · Valores em reais (BRL) · Inclui pedidos aprovados em qualquer etapa de entrega.</p>
+      @if (current.isEmpty) { <p class="feedback" role="status">Nenhuma venda simulada aprovada neste período. Totais zerados.</p> }
+      <dl class="sales-summary" aria-label="Resumo do período">
+        <div><dt>Pedidos</dt><dd>{{ current.orderCount | number:'1.0-0':'pt-BR' }}</dd></div>
+        <div><dt>Cupcakes vendidos</dt><dd>{{ current.itemCount | number:'1.0-0':'pt-BR' }}</dd></div>
+        <div><dt>Subtotal</dt><dd>{{ current.subtotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div><dt>Descontos</dt><dd>{{ current.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div><dt>Total simulado</dt><dd data-testid="sales-total">{{ current.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+      </dl>
+      <p id="table-help">No celular, deslize a tabela para conferir todas as colunas.</p>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Detalhamento diário de vendas" aria-describedby="table-help">
+        <table>
+          <caption>Totais por dia, incluindo dias sem vendas</caption>
+          <thead><tr><th scope="col">Data</th><th scope="col">Pedidos</th><th scope="col">Cupcakes</th><th scope="col">Subtotal</th><th scope="col">Descontos</th><th scope="col">Total simulado</th></tr></thead>
+          <tbody>
+            @for (day of current.days; track day.date) {
+              <tr><th scope="row">{{ dateLabel(day.date) }}</th><td>{{ day.orderCount | number:'1.0-0':'pt-BR' }}</td><td>{{ day.itemCount | number:'1.0-0':'pt-BR' }}</td><td>{{ day.subtotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td><td>{{ day.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td><td>{{ day.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+  <a class="back-link" routerLink="/">Voltar à vitrine</a>
+</section>
