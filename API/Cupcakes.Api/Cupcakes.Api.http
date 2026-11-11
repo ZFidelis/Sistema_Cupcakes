@@ -1,5 +1,19 @@
 @baseUrl = http://127.0.0.1:5080
 
+POST {{baseUrl}}/api/admin/products
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
+
+{
+  "name": "Cupcake demonstrativo",
+  "flavor": "Chocolate",
+  "description": "Produto ficticio cadastrado pela administracao.",
+  "imagePath": "/images/products/cupcake.svg",
+  "price": 15.50,
+  "promotionalPrice": 12.90,
+  "stock": 7
+}
+
 ### Catalogo publico: produtos ativos, valores em BRL e disponibilidade
 GET {{baseUrl}}/api/products
 Accept: application/json
