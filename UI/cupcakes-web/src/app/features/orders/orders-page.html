@@ -1,0 +1,81 @@
+<section aria-labelledby="orders-title" [attr.aria-busy]="state() === 'loading'">
+  <h1 id="orders-title">{{ orderId() ? 'Detalhes do pedido' : 'Meus pedidos' }}</h1>
+  <p>Compras demonstrativas com pagamento simulado, sem cobrança ou rastreamento real.</p>
+  <div class="order-actions">
+    @if (orderId()) { <a routerLink="/pedidos">Voltar aos meus pedidos</a> }
+    <a routerLink="/">Voltar à vitrine</a>
+    @if (auth.user() && state() !== 'anonymous') {
+      <button id="refresh-orders" class="button secondary" type="button" [disabled]="state() === 'loading'" (click)="refresh()">{{ orderId() ? 'Atualizar pedido' : 'Atualizar pedidos' }}</button>
+    }
+  </div>
+  @if (message()) { <p class="feedback error" role="alert">{{ message() }}</p> }
+  @if (auth.sessionState() === 'loading' || state() === 'loading') {
+    <p class="feedback" role="status">Carregando seus pedidos…</p>
+  } @else if (state() === 'anonymous') {
+    <p class="feedback">Entre na sua conta para consultar seus pedidos. <a routerLink="/entrar">Entrar</a></p>
+  } @else if (state() === 'error') {
+    <div class="feedback error" role="alert">
+      <p>Não foi possível consultar os pedidos. Tente novamente.</p>
+      <button id="retry-orders" class="button secondary" type="button" (click)="refresh()">Tentar novamente</button>
+    </div>
+  } @else if (state() === 'missing') {
+    <p class="feedback" role="status">Pedido não encontrado ou indisponível para sua conta.</p>
+  } @else if (!orderId()) {
+    @if (list().length === 0) {
+      <p class="feedback" role="status">Você ainda não tem pedidos. Escolha seus cupcakes na vitrine para começar.</p>
+    } @else {
+      <ul class="order-list" aria-label="Seus pedidos, mais recentes primeiro">
+        @for (item of list(); track item.id) {
+          <li class="order-card">
+            <h2 class="order-number">Pedido {{ item.id }}</h2>
+            <p>{{ item.createdAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }} · {{ statusLabel(item.status) }}</p>
+            <p>{{ item.itemCount }} cupcake(s) · {{ item.paymentMethod === 'Pix' ? 'PIX' : 'Cartão' }} simulado</p>
+            <p class="total">Total: {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            <a class="button secondary" [routerLink]="['/pedidos', item.id]">Ver detalhes</a>
+          </li>
+        }
+      </ul>
+    }
+  } @else if (detail(); as current) {
+    <article class="order-card" aria-labelledby="order-number">
+      <h2 id="order-number" class="order-number">Pedido {{ current.order.id }}</h2>
+      <p>{{ current.order.createdAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p>
+      <p class="order-status">Status: {{ statusLabel(current.order.status) }}</p>
+      <p>{{ current.order.paymentMethod === 'Pix' ? 'PIX' : 'Cartão' }} · {{ current.order.paymentResult }} na simulação</p>
+      <p>{{ current.notice }}</p>
+      <h3>Itens da compra</h3>
+      <ul class="purchased-items">
+        @for (item of current.order.items; track item.productId) {
+          <li>
+            <h4>{{ item.quantity }} × {{ item.productName }}</h4>
+            <p>Preço unitário da compra: {{ item.appliedUnitPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            @if (item.originalUnitPrice !== item.appliedUnitPrice) { <p>Preço original: <s>{{ item.originalUnitPrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</s></p> }
+            <p>Total do item: {{ item.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+          </li>
+        }
+      </ul>
+      <dl>
+        <div><dt>Subtotal</dt><dd>{{ current.order.subtotal | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div><dt>Descontos</dt><dd>{{ current.order.discount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+        <div class="total"><dt>Total</dt><dd data-testid="order-total">{{ current.order.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</dd></div>
+      </dl>
+      <p>Frete e impostos adicionais não calculados. Dados históricos da compra, preservados após mudanças no catálogo.</p>
+      <h3>Endereço informado na compra</h3>
+      <address>
+        {{ current.order.address.recipient }}<br />
+        {{ current.order.address.street }}, {{ current.order.address.number }}<br />
+        @if (current.order.address.complement) { {{ current.order.address.complement }}<br /> }
+        {{ current.order.address.neighborhood }} — {{ current.order.address.city }}/{{ current.order.address.state }}<br />
+        CEP {{ current.order.address.postalCode }}
+      </address>
+      <h3>Histórico de status</h3>
+      <ol class="status-history">
+        @for (entry of current.history; track $index) {
+          <li>{{ statusLabel(entry.status) }} — {{ entry.changedAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</li>
+        } @empty {
+          <li>Histórico não disponível.</li>
+        }
+      </ol>
+    </article>
+  }
+</section>

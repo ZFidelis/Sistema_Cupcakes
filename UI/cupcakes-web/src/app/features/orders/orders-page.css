@@ -1,0 +1,93 @@
+h1 {
+  color: #452f2b;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+h2,
+h3,
+h4 {
+  color: #452f2b;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h4 {
+  margin: .5rem 0;
+  font-size: 1rem;
+}
+
+p,
+li,
+address {
+  line-height: 1.6;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.order-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-card {
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+  overflow-wrap: anywhere;
+}
+
+.order-number {
+  overflow-wrap: anywhere;
+}
+
+.purchased-items {
+  padding-left: 1.5rem;
+}
+
+.purchased-items li {
+  padding: .5rem 0;
+}
+
+dl {
+  max-width: 40rem;
+}
+
+dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .5rem 0;
+}
+
+dd {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.total,
+.order-status {
+  color: #452f2b;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+address {
+  font-style: normal;
+}
+
+.status-history {
+  padding-left: 1.5rem;
+}

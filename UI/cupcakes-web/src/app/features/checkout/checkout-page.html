@@ -21,7 +21,11 @@
       <p class="total" data-testid="confirmed-total">Total: {{ confirmed.total | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
       <p>Destino fictício: {{ confirmed.address.street }}, {{ confirmed.address.number }} — {{ confirmed.address.city }}/{{ confirmed.address.state }}, CEP {{ confirmed.address.postalCode }}.</p>
       <p>Frete e impostos adicionais não calculados. Não há entrega real neste projeto demonstrativo.</p>
-      <a class="button" routerLink="/">Voltar à vitrine</a>
+      <div class="actions">
+        <a class="button" [routerLink]="['/pedidos', confirmed.id]">Ver detalhes do pedido</a>
+        <a class="button secondary" routerLink="/pedidos">Meus pedidos</a>
+        <a class="button secondary" routerLink="/">Voltar à vitrine</a>
+      </div>
     </article>
   } @else {
     @if (uncertain()) {

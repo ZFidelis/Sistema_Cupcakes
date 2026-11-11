@@ -97,7 +97,8 @@ nav a:not(.button) {
     justify-content: space-between;
   }
   .user-email {
-    flex: 1;
+    flex: 0 0 100%;
+    order: 1;
     min-width: 0;
   }
   .page-content {
