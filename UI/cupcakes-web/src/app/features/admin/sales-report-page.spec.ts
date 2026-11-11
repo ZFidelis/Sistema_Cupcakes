@@ -106,4 +106,93 @@ describe('Administrative sales report', () => {
     const request = start(); user.set(null); fixture.detectChanges(); request.flush(report); await render();
     expect(page.querySelector('table')).toBeNull(); expect(page.querySelector('[data-testid=sales-total]')).toBeNull();
   });
+
+  describe('XLSX download', () => {
+    const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    let createUrl = vi.fn((_file: Blob | MediaSource) => 'blob:report-test');
+    let revokeUrl = vi.fn((_url: string) => {});
+    let click: ReturnType<typeof vi.spyOn>;
+    let filename: string;
+    beforeEach(() => {
+      createUrl.mockClear(); revokeUrl.mockClear(); filename = '';
+      vi.stubGlobal('URL', class extends URL {
+        static override createObjectURL = createUrl;
+        static override revokeObjectURL = revokeUrl;
+      });
+      click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        filename = this.download; expect(this.href).toBe('blob:report-test');
+        expect(document.body.contains(this)).toBe(true);
+      });
+    });
+    afterEach(async () => {
+      if (createUrl.mock.calls.length) await vi.waitFor(() => expect(revokeUrl).toHaveBeenCalledWith('blob:report-test'), { timeout: 2000 });
+      vi.restoreAllMocks(); vi.unstubAllGlobals();
+    });
+    function download() { page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.click(); fixture.detectChanges(); }
+    function pendingExport() { return http.expectOne(req => req.url === '/api/admin/reports/sales/export.xlsx'); }
+
+    it('downloads applied parameters with numeric XLSX as a named attachment and releases the object URL', async () => {
+      start().flush(report); await render(); fill('2026-11-11'); submit();
+      http.expectOne('/api/admin/reports/sales?date=2026-11-11&period=week').flush(report); await render();
+      fill('2026-01-01', 'day'); download(); download();
+      const request = pendingExport();
+      expect(request.request.params.get('date')).toBe('2026-11-11');
+      expect(request.request.params.get('period')).toBe('week');
+      expect(request.request.method).toBe('GET'); expect(request.request.responseType).toBe('blob');
+      expect(request.request.headers.has('X-XSRF-TOKEN')).toBe(false);
+      expect(page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.disabled).toBe(true);
+      const file = new Blob(['xlsx bytes'], { type: mime }); request.flush(file); await render();
+      expect(createUrl).toHaveBeenCalledWith(file); expect(click).toHaveBeenCalledTimes(1);
+      expect(filename).toBe('vendas-simuladas-semanal-2026-11-09-2026-11-15.xlsx');
+      expect(document.querySelector('a[download]')).toBeNull();
+      expect(page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.disabled).toBe(false);
+    });
+
+    it('allows download of an empty daily report', async () => {
+      start().flush({ ...report, period: 'day', startDate: '2026-11-11', endDate: '2026-11-11', isEmpty: true }); await render();
+      download(); pendingExport().flush(new Blob(['xlsx'], { type: mime })); await render();
+      expect(filename).toBe('vendas-simuladas-diario-2026-11-11-2026-11-11.xlsx');
+    });
+
+    it('preserves the report on failure and allows manual retry', async () => {
+      start().flush(report); await render(); download();
+      const first = pendingExport(); const params = first.request.params.toString();
+      first.flush(new Blob(), { status: 503, statusText: 'Unavailable' }); await render();
+      expect(page.querySelector('#export-error')?.textContent).toContain('Não foi possível baixar');
+      expect(page.querySelector('table')).not.toBeNull(); expect(click).not.toHaveBeenCalled();
+      download(); const retry = pendingExport(); expect(retry.request.params.toString()).toBe(params);
+      retry.flush(new Blob(['xlsx'], { type: mime })); await render();
+      expect(page.querySelector('#export-error')).toBeNull(); expect(click).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([401, 403])('hides the report after export access denied %s', async status => {
+      start().flush(report); await render(); download();
+      pendingExport().flush(new Blob(), { status, statusText: 'Denied' }); await render();
+      expect(page.querySelector('table')).toBeNull(); expect(page.querySelector('#export-sales-xlsx')).toBeNull();
+      expect(click).not.toHaveBeenCalled(); expect(restoreSession).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+    });
+
+    it('ignores export completion after applying a new period', async () => {
+      start().flush(report); await render(); download(); const old = pendingExport();
+      fill('2026-11-11', 'day'); submit();
+      http.expectOne('/api/admin/reports/sales?date=2026-11-11&period=day').flush(report); await render();
+      old.flush(new Blob(['xlsx'], { type: mime })); await render(); expect(click).not.toHaveBeenCalled();
+    });
+
+    it('ignores export completion after logout', async () => {
+      start().flush(report); await render(); download(); const old = pendingExport();
+      user.set(null); fixture.detectChanges(); old.flush(new Blob(['xlsx'], { type: mime })); await render();
+      expect(click).not.toHaveBeenCalled(); expect(page.querySelector('table')).toBeNull();
+    });
+
+    it('ignores export completion after leaving the page', async () => {
+      start().flush(report); await render(); download(); const old = pendingExport();
+      fixture.destroy(); old.flush(new Blob(['xlsx'], { type: mime })); await render(); expect(click).not.toHaveBeenCalled();
+    });
+
+    it.each([new Blob(['{}'], { type: 'application/json' }), new Blob([], { type: mime })])('rejects invalid attachments', async file => {
+      start().flush(report); await render(); download(); pendingExport().flush(file); await render();
+      expect(click).not.toHaveBeenCalled(); expect(page.querySelector('#export-error')).not.toBeNull();
+    });
+  });
 });

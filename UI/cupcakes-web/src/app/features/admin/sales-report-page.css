@@ -24,6 +24,14 @@ form {
   min-width: 0;
 }
 
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
 label,
 dt {
   font-weight: 600;

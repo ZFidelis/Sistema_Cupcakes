@@ -1,4 +1,4 @@
-import { CurrencyPipe, DecimalPipe, registerLocaleData } from '@angular/common';
+import { CurrencyPipe, DecimalPipe, DOCUMENT, registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
@@ -29,11 +29,14 @@ const calendarDate: ValidatorFn = control => {
 export class SalesReportPage implements OnDestroy {
   protected readonly auth = inject(AuthService);
   private readonly reports = inject(SalesReportsService);
+  private readonly document = inject(DOCUMENT);
   protected readonly isAdmin = computed(() => this.auth.user()?.roles.includes('Administrador') === true);
   protected readonly report = signal<SalesReport | null>(null);
   protected readonly state = signal<'loading' | 'ready' | 'error' | 'denied'>('denied');
   protected readonly message = signal('');
   protected readonly submitted = signal(false);
+  protected readonly downloading = signal(false);
+  protected readonly downloadMessage = signal('');
   protected readonly form = inject(FormBuilder).nonNullable.group({
     date: [todayInSaoPaulo(), [Validators.required, calendarDate]],
     period: ['day' as 'day' | 'week', [Validators.required, Validators.pattern(/^(day|week)$/)]],
@@ -45,6 +48,7 @@ export class SalesReportPage implements OnDestroy {
     effect(() => {
       this.auth.user(); this.version++;
       this.report.set(null); this.message.set(''); this.submitted.set(false);
+      this.downloading.set(false); this.downloadMessage.set('');
       this.form.reset(); this.applied = this.form.getRawValue();
       if (this.isAdmin()) untracked(() => void this.load());
       else this.state.set('denied');
@@ -68,6 +72,7 @@ export class SalesReportPage implements OnDestroy {
     const version = ++this.version;
     const current = () => this.version === version && this.auth.user()?.id === owner && this.isAdmin();
     this.report.set(null); this.message.set(''); this.state.set('loading');
+    this.downloading.set(false); this.downloadMessage.set('');
     try {
       const result = await this.reports.get(this.applied);
       if (current()) { this.report.set(result); this.state.set('ready'); }
@@ -81,5 +86,40 @@ export class SalesReportPage implements OnDestroy {
         if (error instanceof HttpErrorResponse && error.status === 400) this.message.set('Consulta rejeitada. Confira a data e o período e gere novamente.');
       }
     }
+  }
+
+  protected async exportXlsx() {
+    const report = this.report();
+    if (!this.isAdmin() || this.state() !== 'ready' || !report || this.downloading()) return;
+    const owner = this.auth.user()!.id;
+    const version = this.version;
+    const current = () => this.version === version && this.auth.user()?.id === owner && this.isAdmin();
+    this.downloading.set(true); this.downloadMessage.set('');
+    try {
+      const file = await this.reports.exportXlsx({ ...this.applied });
+      if (!current()) return;
+      if (file.size === 0 || file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        throw new Error('Resposta de exportação inválida');
+      const url = URL.createObjectURL(file);
+      const link = this.document.createElement('a');
+      try {
+        link.href = url;
+        const period = report.period === 'week' ? 'semanal' : 'diario';
+        link.download = `vendas-simuladas-${period}-${report.startDate}-${report.endDate}.xlsx`;
+        this.document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        // Permite ao navegador iniciar o download antes de liberar o objeto temporário.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (error) {
+      if (!current()) return;
+      if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
+        this.report.set(null); this.state.set('denied');
+        this.message.set('Acesso indisponível. Entre com uma conta de administrador.');
+        if (error.status === 401) void this.auth.restoreSession();
+      } else this.downloadMessage.set('Não foi possível baixar o XLSX. Tente novamente ou gere o relatório para conferir o período.');
+    } finally { if (current()) this.downloading.set(false); }
   }
 }

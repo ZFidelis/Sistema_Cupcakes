@@ -30,6 +30,11 @@
         <button id="retry-sales" class="button secondary" type="button" (click)="load()">Tentar novamente</button>
       </div>
     } @else if (report(); as current) {
+      <div class="export-actions">
+        <button id="export-sales-xlsx" class="button secondary" type="button" [disabled]="downloading()" [attr.aria-busy]="downloading()" aria-describedby="export-help" (click)="exportXlsx()">{{ downloading() ? 'Preparando XLSX…' : 'Baixar XLSX' }}</button>
+        <p id="export-help">Exporta o período exibido com os dados atuais da loja.</p>
+      </div>
+      @if (downloadMessage()) { <p id="export-error" class="feedback error" role="alert">{{ downloadMessage() }}</p> }
       <h2>{{ current.period === 'week' ? 'Relatório semanal' : 'Relatório diário' }}: {{ dateLabel(current.startDate) }} a {{ dateLabel(current.endDate) }}</h2>
       <p>Horário de São Paulo · Valores em reais (BRL) · Inclui pedidos aprovados em qualquer etapa de entrega.</p>
       @if (current.isEmpty) { <p class="feedback" role="status">Nenhuma venda simulada aprovada neste período. Totais zerados.</p> }

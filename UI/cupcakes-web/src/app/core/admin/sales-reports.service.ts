@@ -18,4 +18,10 @@ export class SalesReportsService {
   get(query: SalesQuery) {
     return firstValueFrom(this.http.get<SalesReport>('/api/admin/reports/sales', { params: { ...query } }));
   }
+
+  exportXlsx(query: SalesQuery) {
+    return firstValueFrom(this.http.get('/api/admin/reports/sales/export.xlsx', {
+      params: { ...query }, responseType: 'blob',
+    }));
+  }
 }
