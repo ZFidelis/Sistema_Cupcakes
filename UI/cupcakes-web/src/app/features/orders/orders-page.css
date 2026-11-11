@@ -91,3 +91,11 @@ address {
 .status-history {
   padding-left: 1.5rem;
 }
+
+.status-controls {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #e1d6d2;
+  border-radius: .5rem;
+  background: #f6efeb;
+}

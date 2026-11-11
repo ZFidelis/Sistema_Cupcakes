@@ -29,6 +29,7 @@ describe('Administrative orders interface', () => {
         { path: 'admin/pedidos', component: OrdersPage, data: { administrative: true } },
         { path: 'admin/pedidos/:orderId', component: OrdersPage, data: { administrative: true } },
         { path: 'pedidos', component: OrdersPage },
+        { path: 'pedidos/:orderId', component: OrdersPage },
       ]), { provide: AuthService, useValue: { user, sessionState: signal('ready'), restoreSession } }] });
     http = TestBed.inject(HttpTestingController); harness = await RouterTestingHarness.create();
   });
@@ -127,5 +128,93 @@ describe('Administrative orders interface', () => {
     await harness.navigateByUrl('/pedidos'); http.expectOne('/api/orders').flush([]); await render();
     expect(page().querySelector('h1')?.textContent).toBe('Meus pedidos');
     expect(page().textContent).not.toContain('private@example.invalid');
+  });
+
+  async function statusRequest() {
+    page().querySelector<HTMLButtonElement>('#advance-status')!.click(); harness.detectChanges();
+    http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'status-token' });
+    await Promise.resolve();
+    return http.expectOne('/api/admin/orders/first/status');
+  }
+  async function statusSettled() {
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(page().querySelector('#advance-status')?.textContent).not.toContain('Salvando');
+    });
+  }
+
+  it('advances all three steps from server responses and stops when delivered', async () => {
+    await open('/admin/pedidos/first');
+    http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail: {
+      ...detail, order: { ...detail.order, status: 'Recebido' }, history: detail.history.slice(0, 1) } }); await render();
+    const history = [...detail.history.slice(0, 1)];
+    for (const next of ['EmPreparo', 'SaiuParaEntrega', 'Entregue']) {
+      const request = await statusRequest();
+      page().querySelector<HTMLButtonElement>('#advance-status')!.click();
+      expect(page().querySelector<HTMLButtonElement>('#refresh-orders')!.disabled).toBe(true);
+      expect(request.request.method).toBe('PUT');
+      expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('status-token');
+      expect(request.request.body).toEqual({ status: next });
+      history.push({ status: next, changedAt: '2026-11-11T12:02:00Z' });
+      request.flush({ orderId: 'first', status: next, history });
+      await vi.waitFor(() => { harness.detectChanges(); expect(page().querySelector('.status-history li:last-child')?.textContent).toContain(
+        next === 'EmPreparo' ? 'Em preparo' : next === 'SaiuParaEntrega' ? 'Saiu para entrega' : 'Entregue'); });
+      expect(page().querySelector('[data-testid=order-total]')?.textContent).toContain('23,80');
+    }
+    expect(page().querySelector('#advance-status')).toBeNull();
+    expect(page().textContent).toContain('Não há outras etapas');
+    expect(page().querySelectorAll('.status-history li')).toHaveLength(4);
+  });
+
+  it.each([0, 400, 409, 500])('requires a fresh read after uncertain/rejected status write %s', async status => {
+    await open('/admin/pedidos/first'); http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail }); await render();
+    (await statusRequest()).flush(null, { status, statusText: 'Failure' }); await statusSettled();
+    expect(page().querySelector<HTMLButtonElement>('#advance-status')!.disabled).toBe(true);
+    expect(page().querySelector('[role=alert]')?.textContent).toContain('Atualizar pedido');
+    http.expectNone('/api/admin/orders/first');
+    page().querySelector<HTMLButtonElement>('#refresh-orders')!.click();
+    http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail: { ...detail,
+      order: { ...detail.order, status: 'SaiuParaEntrega' } } }); await render();
+    expect(page().querySelector<HTMLButtonElement>('#advance-status')!.disabled).toBe(false);
+    expect(page().querySelector('#advance-status')?.textContent).toContain('Entregue');
+  });
+
+  it.each([401, 403])('hides detail when status write is denied with %s', async status => {
+    await open('/admin/pedidos/first'); http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail }); await render();
+    (await statusRequest()).flush(null, { status, statusText: 'Denied' });
+    await vi.waitFor(() => { harness.detectChanges(); expect(page().querySelector('address')).toBeNull(); });
+    expect(page().querySelector('a[href="/entrar"]')).not.toBeNull();
+    expect(restoreSession).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+
+  it('handles missing order while advancing', async () => {
+    await open('/admin/pedidos/first'); http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail }); await render();
+    (await statusRequest()).flush(null, { status: 404, statusText: 'Missing' });
+    await vi.waitFor(() => { harness.detectChanges(); expect(page().textContent).toContain('Pedido não encontrado'); });
+    expect(page().querySelector('address')).toBeNull();
+  });
+
+  it('discards delayed status response after logout', async () => {
+    await open('/admin/pedidos/first'); http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail }); await render();
+    const request = await statusRequest(); user.set(null); harness.detectChanges();
+    request.flush({ orderId: 'first', status: 'SaiuParaEntrega', history: detail.history }); await render();
+    expect(page().querySelector('address')).toBeNull();
+    expect(page().querySelector('.feedback.success')).toBeNull();
+  });
+
+  it('discards delayed status response after selecting a different order', async () => {
+    await open('/admin/pedidos/first'); http.expectOne('/api/admin/orders/first').flush({ customerEmail: 'first@example.invalid', detail }); await render();
+    const request = await statusRequest();
+    await harness.navigateByUrl('/admin/pedidos/second');
+    http.expectOne('/api/admin/orders/second').flush({ customerEmail: 'second@example.invalid', detail: { ...detail, order: { ...detail.order, id: 'second' } } }); await render();
+    request.flush({ orderId: 'first', status: 'Entregue', history: [] }); await render();
+    expect(page().querySelector('#order-number')?.textContent).toContain('second');
+    expect(page().querySelector('.order-status')?.textContent).toContain('Em preparo');
+  });
+
+  it('does not offer status writes in the personal detail, even for an administrator', async () => {
+    await open('/pedidos/first'); http.expectOne('/api/orders/first').flush(detail); await render();
+    expect(page().querySelector('#advance-status')).toBeNull();
+    http.expectNone('/api/auth/antiforgery');
   });
 });
