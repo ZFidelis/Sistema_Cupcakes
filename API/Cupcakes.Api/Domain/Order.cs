@@ -52,4 +52,25 @@ public sealed class Order
     public OrderAddress Address { get; private set; } = null!;
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
     public IReadOnlyCollection<OrderStatusHistory> StatusHistory => _statusHistory.AsReadOnly();
+
+    public bool TryAdvanceStatus(OrderStatus next)
+    {
+        if (!Enum.IsDefined(next)) throw new ArgumentOutOfRangeException(nameof(next));
+        if (next == Status) return true;
+        OrderStatus? expected = Status switch
+        {
+            OrderStatus.Recebido => OrderStatus.EmPreparo,
+            OrderStatus.EmPreparo => OrderStatus.SaiuParaEntrega,
+            OrderStatus.SaiuParaEntrega => OrderStatus.Entregue,
+            _ => null
+        };
+        if (next != expected) return false;
+
+        // PostgreSQL persiste microssegundos; manter datas estaveis e ordem estrita no historico.
+        var earliestTicks = (_statusHistory.Max(entry => entry.ChangedAt).UtcTicks / 10 + 1) * 10;
+        var nowTicks = DateTimeOffset.UtcNow.UtcTicks / 10 * 10;
+        _statusHistory.Add(new OrderStatusHistory(Id, next, new DateTimeOffset(Math.Max(nowTicks, earliestTicks), TimeSpan.Zero)));
+        Status = next;
+        return true;
+    }
 }
