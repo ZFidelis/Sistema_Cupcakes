@@ -1,5 +1,19 @@
 @baseUrl = http://127.0.0.1:5080
 
+PUT {{baseUrl}}/api/admin/products/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+X-XSRF-TOKEN: SUBSTITUA_PELO_REQUEST_TOKEN
+
+{
+  "name": "Cupcake demonstrativo atualizado",
+  "flavor": "Chocolate",
+  "description": "Descricao ficticia atualizada.",
+  "imagePath": "/images/products/cupcake.svg",
+  "price": 16.00,
+  "promotionalPrice": null,
+  "stock": 10
+}
+
 GET {{baseUrl}}/api/admin/products
 Accept: application/json
 

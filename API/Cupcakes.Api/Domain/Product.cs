@@ -10,9 +10,17 @@ public sealed class Product
     public Product(string name, string flavor, string description, string imagePath,
         decimal price, decimal? promotionalPrice, int stock, bool isActive = true)
     {
-        Name = RequiredText(name, 100, nameof(name));
-        Flavor = RequiredText(flavor, 60, nameof(flavor));
-        Description = RequiredText(description, 1000, nameof(description));
+        Update(name, flavor, description, imagePath, price, promotionalPrice, stock);
+        Id = Guid.NewGuid();
+        IsActive = isActive;
+    }
+
+    public void Update(string name, string flavor, string description, string imagePath,
+        decimal price, decimal? promotionalPrice, int stock)
+    {
+        var validName = RequiredText(name, 100, nameof(name));
+        var validFlavor = RequiredText(flavor, 60, nameof(flavor));
+        var validDescription = RequiredText(description, 1000, nameof(description));
         if (imagePath != DemoImagePath)
             throw new ArgumentException("Escolha uma imagem do conjunto estatico permitido.", nameof(imagePath));
         ValidatePrice(price, nameof(price));
@@ -24,12 +32,13 @@ public sealed class Product
         }
         if (stock < 0) throw new ArgumentOutOfRangeException(nameof(stock));
 
-        Id = Guid.NewGuid();
+        Name = validName;
+        Flavor = validFlavor;
+        Description = validDescription;
         ImagePath = imagePath;
         Price = price;
         PromotionalPrice = promotionalPrice;
         Stock = stock;
-        IsActive = isActive;
     }
 
     public Guid Id { get; private set; }

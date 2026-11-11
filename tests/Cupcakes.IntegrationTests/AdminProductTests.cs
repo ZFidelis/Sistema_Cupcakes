@@ -40,7 +40,9 @@ public sealed class AdminProductTests
     public async Task ClearProducts()
     {
         using var scope = app.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.ExecuteDeleteAsync();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Orders.ExecuteDeleteAsync();
+        await db.Products.ExecuteDeleteAsync();
     }
 
     private static Dictionary<string, object?> Payload() => new()
@@ -64,6 +66,142 @@ public sealed class AdminProductTests
         Assert.AreEqual(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password })).StatusCode);
         await RefreshTokenAsync(client);
         return client;
+    }
+
+    private static async Task<Product> ExistingProductAsync(bool active = true)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        var product = new Product("Original", "Morango", "Descricao original", Product.DemoImagePath, 20m, 18m, 9, active);
+        db.Products.Add(product); await db.SaveChangesAsync();
+        return product;
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task AdministratorEditsDetailsAndStockWithoutChangingIdOrActiveFlag(bool active)
+    {
+        var original = await ExistingProductAsync(active);
+        using var client = await LoginAsync(AdminEmail);
+        var payload = Payload(); payload["stock"] = 0;
+        var response = await client.PutAsJsonAsync($"/api/admin/products/{original.Id}", payload);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        var edited = (await response.Content.ReadFromJsonAsync<AdminProductResponse>())!;
+        Assert.AreEqual(original.Id, edited.Id);
+        Assert.AreEqual(active, edited.IsActive);
+        Assert.IsFalse(edited.IsAvailable);
+        Assert.AreEqual("Cupcake de teste", edited.Name);
+        Assert.AreEqual("Chocolate", edited.Flavor);
+        Assert.AreEqual("Descricao demonstrativa", edited.Description);
+        Assert.AreEqual(15.50m, edited.Price);
+        Assert.IsNull(edited.PromotionalPrice);
+        Assert.AreEqual(15.50m, edited.EffectivePrice);
+        Assert.AreEqual(0, edited.Stock);
+        var listed = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!.Single();
+        Assert.AreEqual(edited, listed);
+        using var visitor = app.CreateBrowserClient();
+        var catalog = (await visitor.GetFromJsonAsync<ProductResponse[]>("/api/products"))!;
+        Assert.HasCount(active ? 1 : 0, catalog);
+        if (active) Assert.AreEqual(edited.Name, catalog.Single().Name);
+        var repeated = await client.PutAsJsonAsync($"/api/admin/products/{original.Id}", payload);
+        Assert.AreEqual(edited, await repeated.Content.ReadFromJsonAsync<AdminProductResponse>());
+    }
+
+    [TestMethod]
+    public async Task EditingProductPreservesHistoricalOrderValues()
+    {
+        var product = await ExistingProductAsync();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        var owner = await db.Users.Where(user => user.Email == CustomerEmail).Select(user => user.Id).SingleAsync();
+        var order = new Order(owner, SimulatedPaymentMethod.Pix,
+            new OrderAddress("Pessoa Ficticia", "Rua", "1", "Bairro", "Cidade", "SP", "01234567", null),
+            [new OrderItem(product.Id, product.Name, product.Price, product.EffectivePrice, 2)]);
+        db.Orders.Add(order); await db.SaveChangesAsync();
+        using var client = await LoginAsync(AdminEmail);
+        var payload = Payload(); payload["promotionalPrice"] = 12.90m;
+        var response = await client.PutAsJsonAsync($"/api/admin/products/{product.Id}", payload);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.AreEqual(12.90m, (await response.Content.ReadFromJsonAsync<AdminProductResponse>())!.EffectivePrice);
+        db.ChangeTracker.Clear();
+        var historical = await db.Orders.Include(value => value.Items).SingleAsync();
+        Assert.AreEqual(order.Id, historical.Id);
+        Assert.AreEqual(36m, historical.Total);
+        Assert.AreEqual("Original", historical.Items.Single().ProductName);
+        Assert.AreEqual(20m, historical.Items.Single().OriginalUnitPrice);
+        Assert.AreEqual(18m, historical.Items.Single().AppliedUnitPrice);
+    }
+
+    [TestMethod]
+    public async Task MissingProductReturnsNotFoundWithoutCreatingOne()
+    {
+        using var client = await LoginAsync(AdminEmail);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.PutAsJsonAsync($"/api/admin/products/{Guid.NewGuid()}", Payload())).StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.AreEqual(0, await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.CountAsync());
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    [DataRow("adminWithoutToken", 400)]
+    public async Task EditingRequiresAdministratorAndWriteToken(string actor, int status)
+    {
+        var product = await ExistingProductAsync();
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(actor == "customer" ? CustomerEmail : AdminEmail);
+        if (actor == "adminWithoutToken") client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        Assert.AreEqual((HttpStatusCode)status, (await client.PutAsJsonAsync($"/api/admin/products/{product.Id}", Payload())).StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.AreEqual("Original", await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.Select(value => value.Name).SingleAsync());
+    }
+
+    [TestMethod]
+    [DataRow("name")]
+    [DataRow("price")]
+    [DataRow("promotion")]
+    [DataRow("stock")]
+    [DataRow("missingStock")]
+    [DataRow("image")]
+    [DataRow("active")]
+    public async Task InvalidEditDoesNotPartiallyChangeProduct(string field)
+    {
+        var product = await ExistingProductAsync();
+        var payload = Payload();
+        switch (field)
+        {
+            case "name": payload["name"] = " "; break;
+            case "price": payload["price"] = 1.001m; break;
+            case "promotion": payload["promotionalPrice"] = 16m; break;
+            case "stock": payload["stock"] = -1; break;
+            case "missingStock": payload.Remove("stock"); break;
+            case "image": payload["imagePath"] = "/imagem-inexistente.svg"; break;
+            case "active": payload["isActive"] = false; break;
+        }
+        using var client = await LoginAsync(AdminEmail);
+        var response = await client.PutAsJsonAsync($"/api/admin/products/{product.Id}", payload);
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.IsNotEmpty((await response.Content.ReadFromJsonAsync<ValidationProblemDetails>())!.Errors);
+        using var scope = app.Services.CreateScope();
+        var saved = await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.SingleAsync();
+        Assert.AreEqual(product.Id, saved.Id);
+        Assert.AreEqual("Original", saved.Name);
+        Assert.AreEqual(20m, saved.Price);
+        Assert.AreEqual(18m, saved.PromotionalPrice);
+        Assert.AreEqual(9, saved.Stock);
+        Assert.IsTrue(saved.IsActive);
+    }
+
+    [TestMethod]
+    public void DomainRejectsInvalidEditBeforeChangingAnyField()
+    {
+        var product = new Product("Original", "Morango", "Descricao", Product.DemoImagePath, 20m, 18m, 9, false);
+        Assert.Throws<ArgumentOutOfRangeException>(() => product.Update("Novo", "Chocolate", "Nova descricao", Product.DemoImagePath, 10m, null, -1));
+        Assert.AreEqual("Original", product.Name);
+        Assert.AreEqual("Morango", product.Flavor);
+        Assert.AreEqual(20m, product.Price);
+        Assert.AreEqual(9, product.Stock);
+        Assert.IsFalse(product.IsActive);
     }
 
     [TestMethod]
