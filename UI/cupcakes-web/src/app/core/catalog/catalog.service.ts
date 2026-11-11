@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 export interface Product {
@@ -18,7 +18,19 @@ export interface Product {
 export class CatalogService {
   private readonly http = inject(HttpClient);
 
-  list() {
-    return this.http.get<Product[]>('/api/products');
+  list(filters: CatalogFilters = {}) {
+    let params = new HttpParams();
+    if (filters.flavor) params = params.set('flavor', filters.flavor);
+    if (filters.minPrice !== undefined) params = params.set('minPrice', filters.minPrice);
+    if (filters.maxPrice !== undefined) params = params.set('maxPrice', filters.maxPrice);
+    if (filters.onPromotion !== undefined) params = params.set('onPromotion', filters.onPromotion);
+    return this.http.get<Product[]>('/api/products', { params });
   }
+}
+
+export interface CatalogFilters {
+  flavor?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  onPromotion?: boolean;
 }

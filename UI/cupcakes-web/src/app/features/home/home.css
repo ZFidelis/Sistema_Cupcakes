@@ -18,6 +18,60 @@ p {
   font-size: .875rem;
 }
 
+.catalog-filters {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e1d6d2;
+  border-radius: 1rem;
+  background: #fffdfb;
+}
+
+.filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.filter-field label {
+  font-weight: 600;
+}
+
+.filter-field input,
+.filter-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: .65rem;
+  border: 1px solid #8e7770;
+  border-radius: .5rem;
+  background: white;
+  color: #452f2b;
+  font: inherit;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.filter-field select:focus-visible {
+  outline: 3px solid #a2624a;
+  outline-offset: 3px;
+}
+
+.result-count {
+  margin-bottom: 1rem;
+}
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

@@ -6,6 +6,46 @@
     <p class="catalog-note">Catálogo demonstrativo, com produtos e valores fictícios. Monte seu carrinho e finalize com pagamento inteiramente simulado.</p>
   </header>
 
+  <form class="catalog-filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()" aria-labelledby="filters-title">
+    <h2 id="filters-title">Encontre seu cupcake</h2>
+    <p id="filters-help">Informe o sabor completo. Os preços consideram a promoção, quando houver. Use vírgula ou ponto, sem separador de milhar.</p>
+    <div class="filter-fields">
+      <div class="filter-field">
+        <label for="filter-flavor">Sabor</label>
+        <input id="filter-flavor" type="text" formControlName="flavor" maxlength="60" placeholder="Ex.: Chocolate" aria-describedby="filters-help" />
+      </div>
+      <div class="filter-field">
+        <label for="filter-min">Preço mínimo (R$)</label>
+        <input id="filter-min" type="text" inputmode="decimal" formControlName="minPrice" placeholder="Ex.: 10,00" aria-describedby="filters-help filter-errors" [attr.aria-invalid]="filterSubmitted() && filterForm.controls.minPrice.invalid" />
+      </div>
+      <div class="filter-field">
+        <label for="filter-max">Preço máximo (R$)</label>
+        <input id="filter-max" type="text" inputmode="decimal" formControlName="maxPrice" placeholder="Ex.: 15,00" aria-describedby="filters-help filter-errors" [attr.aria-invalid]="filterSubmitted() && filterForm.controls.maxPrice.invalid" />
+      </div>
+      <div class="filter-field">
+        <label for="filter-promotion">Promoção</label>
+        <select id="filter-promotion" formControlName="promotion">
+          <option value="all">Todos os produtos</option>
+          <option value="yes">Somente em promoção</option>
+          <option value="no">Somente sem promoção</option>
+        </select>
+      </div>
+    </div>
+    <div id="filter-errors">
+      @if (filterSubmitted() && filterForm.invalid) {
+        <p class="feedback error" role="alert">
+          @if (filterForm.controls.flavor.invalid) { Informe um sabor com até 60 caracteres. }
+          @if (filterForm.controls.minPrice.invalid || filterForm.controls.maxPrice.invalid) { Informe preços de zero a 9999999999,99 com até duas casas decimais. }
+          @if (filterForm.hasError('priceRange')) { O preço mínimo não pode superar o máximo. }
+        </p>
+      }
+    </div>
+    <div class="filter-actions">
+      <button class="button" type="submit">Aplicar filtros</button>
+      <button class="button secondary" type="button" (click)="clearFilters()">Limpar filtros</button>
+    </div>
+  </form>
+
   @if (addMessage()) { <p class="feedback success" role="status">{{ addMessage() }} <a routerLink="/carrinho">Ver carrinho</a></p> }
   @if (addError()) { <p class="feedback error" role="alert">{{ addError() }} <a routerLink="/carrinho">Ver carrinho</a></p> }
 
@@ -14,11 +54,12 @@
   } @else if (state() === 'error') {
     <div class="feedback error" role="alert">
       <p>Não foi possível carregar os cupcakes. Tente novamente.</p>
-      <button type="button" class="button secondary" (click)="load()">Tentar novamente</button>
+      <button type="button" class="button secondary retry-catalog" (click)="load()">Tentar novamente</button>
     </div>
   } @else if (products().length === 0) {
-    <p class="feedback" role="status">Ainda não há cupcakes na vitrine. Volte em breve para conhecer nossos sabores.</p>
+    <p class="feedback" role="status">{{ hasFilters ? 'Nenhum cupcake encontrado com esses filtros. Altere os campos ou limpe os filtros.' : 'Ainda não há cupcakes na vitrine. Volte em breve para conhecer nossos sabores.' }}</p>
   } @else {
+    <p class="result-count" role="status">{{ products().length }} produto(s) encontrado(s){{ hasFilters ? ' com os filtros aplicados' : '' }}.</p>
     <ul class="product-grid" aria-label="Cupcakes do catálogo">
       @for (product of products(); track product.id) {
         <li class="product-card">

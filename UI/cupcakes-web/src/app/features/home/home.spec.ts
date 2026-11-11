@@ -74,7 +74,7 @@ describe('Home catalog', () => {
     http.expectOne('/api/products').flush(null, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
     expect(page.querySelector('[role="alert"]')?.textContent).toContain('Não foi possível');
-    page.querySelector<HTMLButtonElement>('button')!.click();
+    page.querySelector<HTMLButtonElement>('.retry-catalog')!.click();
     fixture.detectChanges();
     expect(page.querySelector('[role="status"]')?.textContent).toContain('Carregando');
     http.expectOne('/api/products').flush([regular]);
@@ -90,7 +90,7 @@ describe('Home catalog', () => {
     fixture.detectChanges();
     expect(page.querySelector('img')).toBeNull();
     expect(page.querySelector('.image-fallback')?.getAttribute('aria-label')).toContain(regular.name);
-    expect(page.querySelector('h2')?.textContent).toBe(regular.name);
+    expect(page.querySelector('.product-card h2')?.textContent).toBe(regular.name);
     expect(page.querySelector('.price')?.textContent).toContain('12,50');
   });
 
@@ -98,6 +98,108 @@ describe('Home catalog', () => {
     const request = http.expectOne('/api/products');
     fixture.destroy();
     expect(request.cancelled).toBe(true);
+  });
+
+  function enter(field: string, value: string) {
+    const input = page.querySelector<HTMLInputElement>(`#filter-${field}`)!;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+  }
+
+  function submitFilters() {
+    page.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    fixture.detectChanges();
+  }
+
+  it('combines filters for visitors, converting comma prices and preserving false promotion', () => {
+    http.expectOne('/api/products').flush([regular]);
+    enter('flavor', ' Chocolate ');
+    enter('min', '0');
+    enter('max', '12,50');
+    const select = page.querySelector<HTMLSelectElement>('#filter-promotion')!;
+    select.value = 'no';
+    select.dispatchEvent(new Event('change'));
+    submitFilters();
+    const request = http.expectOne(req => req.url === '/api/products' && req.params.has('flavor'));
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys().sort()).toEqual(['flavor', 'maxPrice', 'minPrice', 'onPromotion']);
+    expect(request.request.params.get('flavor')).toBe('Chocolate');
+    expect(request.request.params.get('minPrice')).toBe('0');
+    expect(request.request.params.get('maxPrice')).toBe('12.5');
+    expect(request.request.params.get('onPromotion')).toBe('false');
+    expect(request.request.headers.has('X-XSRF-TOKEN')).toBe(false);
+    request.flush([regular]);
+    fixture.detectChanges();
+    expect(page.querySelector('.result-count')?.textContent).toContain('1 produto(s)');
+    expect(page.querySelector('.result-count')?.textContent).toContain('filtros aplicados');
+  });
+
+  it('sends promotion-only filter and clears all fields to restore the full catalog', () => {
+    http.expectOne('/api/products').flush([regular]);
+    const select = page.querySelector<HTMLSelectElement>('#filter-promotion')!;
+    select.value = 'yes';
+    select.dispatchEvent(new Event('change'));
+    submitFilters();
+    http.expectOne('/api/products?onPromotion=true').flush([]);
+    fixture.detectChanges();
+    expect(page.textContent).toContain('Nenhum cupcake encontrado com esses filtros');
+    page.querySelector<HTMLButtonElement>('.filter-actions button[type=button]')!.click();
+    fixture.detectChanges();
+    http.expectOne('/api/products').flush([regular, promotion]);
+    fixture.detectChanges();
+    expect(select.value).toBe('all');
+    expect(page.querySelector<HTMLInputElement>('#filter-min')!.value).toBe('');
+    expect(page.querySelectorAll('.product-card')).toHaveLength(2);
+    expect(page.querySelector('.result-count')?.textContent).not.toContain('filtros aplicados');
+  });
+
+  it.each(['-1', '1.001', 'abc', '10000000000', '1.000,00'])('rejects invalid money %s without requesting products', value => {
+    http.expectOne('/api/products').flush([regular]);
+    enter('min', value);
+    submitFilters();
+    http.expectNone(req => req.url === '/api/products');
+    expect(page.querySelector('#filter-errors')?.textContent).toContain('até duas casas decimais');
+    expect(page.querySelector('#filter-min')?.getAttribute('aria-invalid')).toBe('true');
+    expect(page.querySelectorAll('.product-card')).toHaveLength(1);
+  });
+
+  it('rejects inverted limits, then accepts inclusive equal limits with dot decimals', () => {
+    http.expectOne('/api/products').flush([]);
+    enter('min', '20');
+    enter('max', '12.50');
+    submitFilters();
+    http.expectNone(req => req.url === '/api/products');
+    expect(page.querySelector('#filter-errors')?.textContent).toContain('mínimo não pode superar');
+    enter('min', '12.50');
+    submitFilters();
+    http.expectOne('/api/products?minPrice=12.5&maxPrice=12.5').flush([regular]);
+  });
+
+  it('retries the applied query even when the form has unsubmitted edits', () => {
+    http.expectOne('/api/products').flush([]);
+    enter('flavor', 'Morango');
+    submitFilters();
+    http.expectOne('/api/products?flavor=Morango').flush(null, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    enter('flavor', 'Chocolate');
+    page.querySelector<HTMLButtonElement>('.retry-catalog')!.click();
+    http.expectOne('/api/products?flavor=Morango').flush([promotion]);
+    fixture.detectChanges();
+    expect(page.querySelector('.product-card h2')?.textContent).toBe(promotion.name);
+  });
+
+  it('cancels an older catalog request when a new filter is applied', () => {
+    const initial = http.expectOne('/api/products');
+    enter('flavor', 'Chocolate');
+    submitFilters();
+    expect(initial.cancelled).toBe(true);
+    const filtered = http.expectOne('/api/products?flavor=Chocolate');
+    enter('flavor', 'Morango');
+    submitFilters();
+    expect(filtered.cancelled).toBe(true);
+    http.expectOne('/api/products?flavor=Morango').flush([promotion]);
+    fixture.detectChanges();
+    expect(page.querySelector('.product-card h2')?.textContent).toBe(promotion.name);
   });
 
   it('offers login to visitors and disables products without stock', () => {
