@@ -12,6 +12,7 @@ export const routes: Routes = [
   { path: 'carrinho', component: CartPage },
   { path: 'checkout', component: CheckoutPage },
   { path: 'admin/produtos/novo', component: ProductCreatePage },
+  { path: 'admin/produtos/:productId/editar', component: ProductCreatePage },
   { path: 'admin/produtos', component: ProductsPage },
   { path: 'pedidos', component: OrdersPage },
   { path: 'pedidos/:orderId', component: OrdersPage },

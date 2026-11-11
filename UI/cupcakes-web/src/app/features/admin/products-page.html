@@ -38,6 +38,7 @@
                 <div><dt>Estoque</dt><dd>{{ product.stock }} unidade(s)</dd></div>
                 <div><dt>Disponibilidade</dt><dd>{{ !product.isActive ? 'Fora da vitrine' : (product.isAvailable ? 'Disponível' : 'Sem estoque') }}</dd></div>
               </dl>
+              <a class="button secondary" [routerLink]="['/admin/produtos', product.id, 'editar']" [attr.aria-label]="'Editar ' + product.name">Editar produto</a>
             </li>
           }
         </ul>

@@ -1,6 +1,6 @@
 <section aria-labelledby="admin-product-title">
   <p class="eyebrow">Administração</p>
-  <h1 id="admin-product-title">Cadastrar cupcake</h1>
+  <h1 id="admin-product-title">{{ editingId() ? 'Editar cupcake' : 'Cadastrar cupcake' }}</h1>
   @if (isAdmin() && !blocked()) { <a class="back-link" routerLink="/admin/produtos">Ver produtos cadastrados</a> }
   @if (auth.sessionState() === 'loading') {
     <p class="feedback" role="status">Consultando sua conta…</p>
@@ -8,20 +8,30 @@
     <p class="feedback" role="status">{{ error() || 'Esta página é exclusiva para administradores.' }}</p>
     <a class="button secondary" routerLink="/entrar">Entrar com outra conta</a>
     <a class="back-link" routerLink="/">Voltar à vitrine</a>
+  } @else if (loadState() === 'loading') {
+    <p class="feedback" role="status">Carregando dados do produto…</p>
+  } @else if (loadState() === 'error') {
+    <div class="feedback error" role="alert">
+      <p>Não foi possível carregar os dados do produto.</p>
+      <button class="button secondary" type="button" (click)="loadExisting()">Tentar novamente</button>
+    </div>
+  } @else if (loadState() === 'missing') {
+    <p class="feedback" role="status">Produto não encontrado. Volte à lista e selecione outro produto.</p>
   } @else if (created(); as product) {
     <div class="feedback success" role="status">
-      <h2>Produto cadastrado</h2>
-      <p>{{ product.name }} já está na vitrine.</p>
+      <h2>{{ editingId() ? 'Produto atualizado' : 'Produto cadastrado' }}</h2>
+      <p>{{ product.name }}{{ original()?.isActive === false ? ' continua inativo, fora da vitrine.' : ' já está na vitrine.' }}</p>
       <p>Preço atual: {{ product.effectivePrice | currency:'BRL':'symbol':'1.2-2':'pt-BR' }} · Estoque: {{ product.stock }}</p>
-      @if (!product.isAvailable) { <p>Com estoque zero, o produto aparece como indisponível.</p> }
+      @if (product.stock === 0 && original()?.isActive !== false) { <p>Com estoque zero, o produto aparece como indisponível.</p> }
     </div>
     <div class="actions">
-      <a class="button secondary" routerLink="/">Ver na vitrine</a>
-      <button class="button" type="button" (click)="reset()">Cadastrar outro cupcake</button>
+      <a class="button secondary" [routerLink]="editingId() ? '/admin/produtos' : '/'">{{ editingId() ? 'Voltar à lista' : 'Ver na vitrine' }}</a>
+      @if (!editingId()) { <button class="button" type="button" (click)="reset()">Cadastrar outro cupcake</button> }
     </div>
   } @else {
-    <p>Cadastre produtos demonstrativos. Todos os novos cupcakes ficam ativos na vitrine.</p>
-    @if (error()) { <p class="feedback error" role="alert">{{ error() }} <a routerLink="/">Conferir vitrine</a></p> }
+    <p>{{ editingId() ? 'Edite os dados do cupcake. O estoque informado substitui o saldo atual; a situação ativa ou inativa será preservada.' : 'Cadastre produtos demonstrativos. Todos os novos cupcakes ficam ativos na vitrine.' }}</p>
+    @if (original(); as product) { <p class="feedback" role="status">Situação atual: {{ product.isActive ? 'Ativo' : 'Inativo, fora da vitrine' }}.</p> }
+    @if (error()) { <p class="feedback error" role="alert">{{ error() }} <a [routerLink]="editingId() ? '/admin/produtos' : '/'">{{ editingId() ? 'Conferir lista' : 'Conferir vitrine' }}</a></p> }
     <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="busy()" novalidate>
       <fieldset [disabled]="busy()">
         <legend>Dados do produto</legend>
@@ -60,7 +70,7 @@
             </div>
           }
         </div>
-        <button class="button" type="submit">{{ busy() ? 'Cadastrando…' : 'Cadastrar produto' }}</button>
+        <button class="button" type="submit">{{ busy() ? 'Salvando…' : (editingId() ? 'Salvar alterações' : 'Cadastrar produto') }}</button>
       </fieldset>
     </form>
     <a class="back-link" routerLink="/">Voltar à vitrine</a>
