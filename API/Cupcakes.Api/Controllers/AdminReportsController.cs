@@ -20,6 +20,20 @@ public sealed class AdminReportsController(SalesReportService reports) : Control
     public async Task<ActionResult<SalesReportResponse>> GetSales([FromQuery] SalesReportRequest request, CancellationToken ct) =>
         Ok(await reports.GetAsync(request.ParsedDate(), request.Period == "week", ct));
 
+    [HttpGet("sales/export.pdf")]
+    [Produces(SalesReportPdfExporter.ContentType)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportSalesPdf([FromQuery] SalesReportRequest request, CancellationToken ct)
+    {
+        var report = await reports.GetAsync(request.ParsedDate(), request.Period == "week", ct);
+        var period = report.Period == "week" ? "semanal" : "diario";
+        var filename = FormattableString.Invariant($"vendas-simuladas-{period}-{report.StartDate:yyyy-MM-dd}-{report.EndDate:yyyy-MM-dd}.pdf");
+        return File(SalesReportPdfExporter.Export(report), SalesReportPdfExporter.ContentType, filename);
+    }
+
     [HttpGet("sales/export.xlsx")]
     [Produces(SalesReportXlsxExporter.ContentType)]
     [ProducesResponseType(StatusCodes.Status200OK)]

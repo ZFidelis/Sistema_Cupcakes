@@ -314,6 +314,115 @@ public sealed class SalesReportTests
         Assert.IsNull(response.Content.Headers.ContentDisposition);
     }
 
+    private static async Task VerifyPdfAsync(HttpClient client, string query)
+    {
+        var report = await ReportAsync(client, query);
+        using var response = await client.GetAsync("/api/admin/reports/sales/export.pdf?" + query);
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsTrue(response.Headers.CacheControl!.NoStore);
+        Assert.AreEqual("application/pdf", response.Content.Headers.ContentType!.MediaType);
+        var period = report.Period == "week" ? "semanal" : "diario";
+        Assert.AreEqual("attachment", response.Content.Headers.ContentDisposition!.DispositionType);
+        Assert.AreEqual(FormattableString.Invariant($"vendas-simuladas-{period}-{report.StartDate:yyyy-MM-dd}-{report.EndDate:yyyy-MM-dd}.pdf"),
+            response.Content.Headers.ContentDisposition.FileNameStar);
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.AreEqual("%PDF-", System.Text.Encoding.ASCII.GetString(bytes, 0, 5));
+        using var document = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.AreEqual(1, document.NumberOfPages);
+        var page = document.GetPage(1);
+        Assert.IsGreaterThan(page.Height, page.Width);
+        Assert.Contains("Relatorio de vendas simuladas", page.Text);
+        Assert.Contains("SIMULACAO - sem transacoes financeiras reais", page.Text);
+        Assert.Contains(report.TimeZone, page.Text); Assert.Contains("Moeda: BRL", page.Text);
+        var culture = CultureInfo.GetCultureInfo("pt-BR");
+        string Date(DateOnly date) => date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+        Assert.Contains($"{Date(report.StartDate)} a {Date(report.EndDate)}", page.Text);
+        Assert.Contains(report.Period == "week" ? "Periodo: Semanal" : "Periodo: Diario", page.Text);
+        Assert.Contains(report.IsEmpty ? "Sem vendas simuladas aprovadas neste periodo." : "Somente pagamentos simulados aprovados", page.Text);
+        double[] edges = [36, 161, 276, 401, 536, 671, 806];
+        void Row(double top, string[] expected)
+        {
+            for (var column = 0; column < expected.Length; column++)
+            {
+                var letters = page.Letters.Where(letter => Math.Abs(letter.StartBaseLine.Y - (page.Height - top)) < .1
+                    && letter.StartBaseLine.X >= edges[column] && letter.StartBaseLine.X < edges[column + 1]).ToArray();
+                Assert.AreEqual(expected[column].Replace(" ", ""), string.Concat(letters.Select(letter => letter.Value)).Replace(" ", ""));
+                Assert.IsTrue(letters.All(letter => letter.BoundingBox.Right < edges[column + 1]), "Celula nao pode invadir a coluna seguinte.");
+            }
+        }
+        Row(211, ["Data", "Pedidos", "Cupcakes", "Subtotal (BRL)", "Desconto (BRL)", "Total (BRL)"]);
+        for (var i = 0; i < report.Days.Length; i++)
+        {
+            var day = report.Days[i];
+            Row(241 + i * 30, [Date(day.Date), day.OrderCount.ToString("N0", culture), day.ItemCount.ToString("N0", culture),
+                day.Subtotal.ToString("N2", culture), day.Discount.ToString("N2", culture), day.Total.ToString("N2", culture)]);
+        }
+        Row(241 + report.Days.Length * 30, ["TOTAL", report.OrderCount.ToString("N0", culture), report.ItemCount.ToString("N0", culture),
+            report.Subtotal.ToString("N2", culture), report.Discount.ToString("N2", culture), report.Total.ToString("N2", culture)]);
+        Assert.IsTrue(page.Letters.All(letter => letter.BoundingBox.Left >= 30 && letter.BoundingBox.Right < page.Width - 30
+            && letter.BoundingBox.Bottom > 20 && letter.BoundingBox.Top < page.Height - 20), "Texto deve permanecer dentro das margens.");
+    }
+
+    [TestMethod]
+    [DataRow("day")]
+    [DataRow("week")]
+    public async Task PdfEmptyPeriodHasValidPageAndZeroTotals(string period)
+    {
+        using var client = await LoginAsync(Admin);
+        await VerifyPdfAsync(client, "date=2026-11-11&period=" + period);
+    }
+
+    [TestMethod]
+    [DataRow("day")]
+    [DataRow("week")]
+    public async Task PdfMatchesJsonWithHistoricalPricesAndLocalDates(string period)
+    {
+        await SeedAsync("2026-11-11T02:59:59Z");
+        await SeedAsync("2026-11-11T03:00:00Z");
+        await SeedAsync("2026-11-12T02:59:59Z", 1, promotion: null);
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Products.ExecuteUpdateAsync(set => set.SetProperty(product => product.Price, 30m).SetProperty(product => product.IsActive, false));
+        using var client = await LoginAsync(Admin);
+        await VerifyPdfAsync(client, "date=2026-11-11&period=" + period);
+        Assert.AreEqual(3, await db.Orders.CountAsync()); Assert.AreEqual(3, await db.OrderStatusHistory.CountAsync());
+        Assert.IsTrue(await db.Products.AllAsync(product => product.Stock == 10 && !product.IsActive));
+    }
+
+    [TestMethod]
+    public async Task PdfLargeCountsAndCentValuesFitTheirColumns()
+    {
+        await SeedAsync("2026-11-11T12:00:00Z", int.MaxValue, .02m, .01m);
+        await SeedAsync("2026-11-11T13:00:00Z", int.MaxValue, .02m, .01m);
+        using var client = await LoginAsync(Admin);
+        await VerifyPdfAsync(client, "date=2026-11-11");
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    public async Task PdfRequiresAdministrator(string actor, int status)
+    {
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(Customer);
+        Assert.AreEqual((HttpStatusCode)status, (await client.GetAsync("/api/admin/reports/sales/export.pdf?date=2026-11-11")).StatusCode);
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("date=2026-02-29")]
+    [DataRow("date=9999-12-31")]
+    [DataRow("date=2026-11-11&period=month")]
+    public async Task PdfInvalidQueryReturnsProblemInsteadOfAttachment(string query)
+    {
+        using var client = await LoginAsync(Admin);
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/pdf");
+        var response = await client.GetAsync("/api/admin/reports/sales/export.pdf?" + query);
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.AreEqual("application/problem+json", response.Content.Headers.ContentType!.MediaType);
+        Assert.IsNotEmpty((await response.Content.ReadFromJsonAsync<ValidationProblemDetails>())!.Errors);
+        Assert.IsNull(response.Content.Headers.ContentDisposition);
+    }
+
     [TestMethod]
     public async Task DeclinedCheckoutDoesNotCountAsSale()
     {
