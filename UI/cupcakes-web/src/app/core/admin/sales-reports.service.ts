@@ -24,4 +24,10 @@ export class SalesReportsService {
       params: { ...query }, responseType: 'blob',
     }));
   }
+
+  exportPdf(query: SalesQuery) {
+    return firstValueFrom(this.http.get('/api/admin/reports/sales/export.pdf', {
+      params: { ...query }, responseType: 'blob',
+    }));
+  }
 }

@@ -31,7 +31,8 @@
       </div>
     } @else if (report(); as current) {
       <div class="export-actions">
-        <button id="export-sales-xlsx" class="button secondary" type="button" [disabled]="downloading()" [attr.aria-busy]="downloading()" aria-describedby="export-help" (click)="exportXlsx()">{{ downloading() ? 'Preparando XLSX…' : 'Baixar XLSX' }}</button>
+        <button id="export-sales-xlsx" class="button secondary" type="button" [disabled]="downloading()" [attr.aria-busy]="downloading() && downloadFormat() === 'xlsx'" aria-describedby="export-help" (click)="exportXlsx()">{{ downloading() && downloadFormat() === 'xlsx' ? 'Preparando XLSX…' : 'Baixar XLSX' }}</button>
+        <button id="export-sales-pdf" class="button secondary" type="button" [disabled]="downloading()" [attr.aria-busy]="downloading() && downloadFormat() === 'pdf'" aria-describedby="export-help" (click)="exportPdf()">{{ downloading() && downloadFormat() === 'pdf' ? 'Preparando PDF…' : 'Baixar PDF' }}</button>
         <p id="export-help">Exporta o período exibido com os dados atuais da loja.</p>
       </div>
       @if (downloadMessage()) { <p id="export-error" class="feedback error" role="alert">{{ downloadMessage() }}</p> }

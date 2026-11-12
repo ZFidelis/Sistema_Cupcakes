@@ -36,6 +36,7 @@ export class SalesReportPage implements OnDestroy {
   protected readonly message = signal('');
   protected readonly submitted = signal(false);
   protected readonly downloading = signal(false);
+  protected readonly downloadFormat = signal<'xlsx' | 'pdf'>('xlsx');
   protected readonly downloadMessage = signal('');
   protected readonly form = inject(FormBuilder).nonNullable.group({
     date: [todayInSaoPaulo(), [Validators.required, calendarDate]],
@@ -88,24 +89,29 @@ export class SalesReportPage implements OnDestroy {
     }
   }
 
-  protected async exportXlsx() {
+  protected exportXlsx() { return this.exportFile('xlsx'); }
+  protected exportPdf() { return this.exportFile('pdf'); }
+
+  private async exportFile(format: 'xlsx' | 'pdf') {
     const report = this.report();
     if (!this.isAdmin() || this.state() !== 'ready' || !report || this.downloading()) return;
     const owner = this.auth.user()!.id;
     const version = this.version;
     const current = () => this.version === version && this.auth.user()?.id === owner && this.isAdmin();
-    this.downloading.set(true); this.downloadMessage.set('');
+    this.downloading.set(true); this.downloadFormat.set(format); this.downloadMessage.set('');
     try {
-      const file = await this.reports.exportXlsx({ ...this.applied });
+      const query = { ...this.applied };
+      const file = await (format === 'pdf' ? this.reports.exportPdf(query) : this.reports.exportXlsx(query));
       if (!current()) return;
-      if (file.size === 0 || file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      if (file.size === 0 || file.type !== mime)
         throw new Error('Resposta de exportação inválida');
       const url = URL.createObjectURL(file);
       const link = this.document.createElement('a');
       try {
         link.href = url;
         const period = report.period === 'week' ? 'semanal' : 'diario';
-        link.download = `vendas-simuladas-${period}-${report.startDate}-${report.endDate}.xlsx`;
+        link.download = `vendas-simuladas-${period}-${report.startDate}-${report.endDate}.${format}`;
         this.document.body.appendChild(link);
         link.click();
       } finally {
@@ -119,7 +125,7 @@ export class SalesReportPage implements OnDestroy {
         this.report.set(null); this.state.set('denied');
         this.message.set('Acesso indisponível. Entre com uma conta de administrador.');
         if (error.status === 401) void this.auth.restoreSession();
-      } else this.downloadMessage.set('Não foi possível baixar o XLSX. Tente novamente ou gere o relatório para conferir o período.');
+      } else this.downloadMessage.set(`Não foi possível baixar o ${format.toUpperCase()}. Tente novamente ou gere o relatório para conferir o período.`);
     } finally { if (current()) this.downloading.set(false); }
   }
 }

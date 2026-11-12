@@ -107,8 +107,8 @@ describe('Administrative sales report', () => {
     expect(page.querySelector('table')).toBeNull(); expect(page.querySelector('[data-testid=sales-total]')).toBeNull();
   });
 
-  describe('XLSX download', () => {
-    const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  describe.each(['xlsx', 'pdf'] as const)('%s download', format => {
+    const mime = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     let createUrl = vi.fn((_file: Blob | MediaSource) => 'blob:report-test');
     let revokeUrl = vi.fn((_url: string) => {});
     let click: ReturnType<typeof vi.spyOn>;
@@ -128,10 +128,10 @@ describe('Administrative sales report', () => {
       if (createUrl.mock.calls.length) await vi.waitFor(() => expect(revokeUrl).toHaveBeenCalledWith('blob:report-test'), { timeout: 2000 });
       vi.restoreAllMocks(); vi.unstubAllGlobals();
     });
-    function download() { page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.click(); fixture.detectChanges(); }
-    function pendingExport() { return http.expectOne(req => req.url === '/api/admin/reports/sales/export.xlsx'); }
+    function download() { page.querySelector<HTMLButtonElement>('#export-sales-' + format)!.click(); fixture.detectChanges(); }
+    function pendingExport() { return http.expectOne(req => req.url === '/api/admin/reports/sales/export.' + format); }
 
-    it('downloads applied parameters with numeric XLSX as a named attachment and releases the object URL', async () => {
+    it('downloads applied parameters as a named attachment and releases the object URL', async () => {
       start().flush(report); await render(); fill('2026-11-11'); submit();
       http.expectOne('/api/admin/reports/sales?date=2026-11-11&period=week').flush(report); await render();
       fill('2026-01-01', 'day'); download(); download();
@@ -141,9 +141,12 @@ describe('Administrative sales report', () => {
       expect(request.request.method).toBe('GET'); expect(request.request.responseType).toBe('blob');
       expect(request.request.headers.has('X-XSRF-TOKEN')).toBe(false);
       expect(page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.disabled).toBe(true);
+      expect(page.querySelector<HTMLButtonElement>('#export-sales-pdf')!.disabled).toBe(true);
+      page.querySelector<HTMLButtonElement>('#export-sales-' + (format === 'pdf' ? 'xlsx' : 'pdf'))!.click();
+      http.expectNone(req => req.url === '/api/admin/reports/sales/export.' + (format === 'pdf' ? 'xlsx' : 'pdf'));
       const file = new Blob(['xlsx bytes'], { type: mime }); request.flush(file); await render();
       expect(createUrl).toHaveBeenCalledWith(file); expect(click).toHaveBeenCalledTimes(1);
-      expect(filename).toBe('vendas-simuladas-semanal-2026-11-09-2026-11-15.xlsx');
+      expect(filename).toBe('vendas-simuladas-semanal-2026-11-09-2026-11-15.' + format);
       expect(document.querySelector('a[download]')).toBeNull();
       expect(page.querySelector<HTMLButtonElement>('#export-sales-xlsx')!.disabled).toBe(false);
     });
@@ -151,7 +154,7 @@ describe('Administrative sales report', () => {
     it('allows download of an empty daily report', async () => {
       start().flush({ ...report, period: 'day', startDate: '2026-11-11', endDate: '2026-11-11', isEmpty: true }); await render();
       download(); pendingExport().flush(new Blob(['xlsx'], { type: mime })); await render();
-      expect(filename).toBe('vendas-simuladas-diario-2026-11-11-2026-11-11.xlsx');
+      expect(filename).toBe('vendas-simuladas-diario-2026-11-11-2026-11-11.' + format);
     });
 
     it('preserves the report on failure and allows manual retry', async () => {
