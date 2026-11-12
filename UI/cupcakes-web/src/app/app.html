@@ -1,3 +1,4 @@
+<a class="skip-link" href="#main-content" (click)="skipToContent($event)">Pular para o conteúdo</a>
 <header class="site-header">
   <div class="header-content">
     <a class="brand" routerLink="/" aria-label="Cupcakes gourmet, início"><span class="brand-mark" aria-hidden="true">CG</span>Cupcakes gourmet</a>
@@ -23,7 +24,7 @@
     </nav>
   </div>
 </header>
-<main class="page-content">
+<main id="main-content" class="page-content" tabindex="-1">
   @if (auth.sessionState() === 'unavailable') {
     <div class="feedback" role="status">Não foi possível consultar sua conta.
       <button class="retry" type="button" (click)="auth.restoreSession()">Tentar novamente</button>
@@ -31,6 +32,6 @@
   }
   @if (logoutError()) { <p class="feedback error" role="alert">{{ logoutError() }}</p> }
   @if (notice() && !auth.user() && router.url === '/') { <p class="feedback success" role="status">{{ notice() }}</p> }
-  <router-outlet />
+  <router-outlet (activate)="focusPage()" />
 </main>
 <footer class="site-footer">Cupcakes gourmet · Feitos para adoçar seu dia.</footer>

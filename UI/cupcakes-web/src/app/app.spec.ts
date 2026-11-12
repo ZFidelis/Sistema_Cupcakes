@@ -56,4 +56,26 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Loja de cupcakes gourmet');
   });
+
+  it('skips the header without navigating away from the current route', async () => {
+    const fixture = TestBed.createComponent(App); fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/'); await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLAnchorElement>('.skip-link')!.click();
+    expect(document.activeElement).toBe(root.querySelector('main'));
+    expect(router.url).toBe('/');
+    expect(root.querySelector('main')?.tabIndex).toBe(-1);
+  });
+
+  it('moves focus to the heading after navigation without adding it to the Tab order', async () => {
+    const fixture = TestBed.createComponent(App); fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/'); await fixture.whenStable();
+    await router.navigateByUrl('/carrinho'); await fixture.whenStable();
+    const heading = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('main h1');
+    expect(document.activeElement).toBe(heading);
+    expect(heading?.tabIndex).toBe(-1);
+    expect(heading?.textContent).toContain('Meu carrinho');
+  });
 });

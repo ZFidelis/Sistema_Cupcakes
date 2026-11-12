@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, ElementRef, inject, Injector, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth/auth.service';
 
@@ -9,6 +9,9 @@ import { AuthService } from './core/auth/auth.service';
   templateUrl: './app.html',
 })
 export class App implements OnInit {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private activated = false;
   protected readonly auth = inject(AuthService);
   protected readonly router = inject(Router);
   protected readonly logoutBusy = signal(false);
@@ -17,6 +20,21 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     void this.auth.restoreSession();
+  }
+
+  protected skipToContent(event: Event): void {
+    event.preventDefault();
+    this.host.nativeElement.querySelector<HTMLElement>('#main-content')?.focus();
+  }
+
+  protected focusPage(): void {
+    if (!this.activated) { this.activated = true; return; }
+    afterNextRender(() => {
+      const heading = this.host.nativeElement.querySelector<HTMLElement>('main h1');
+      if (!heading?.isConnected) return;
+      heading.tabIndex = -1;
+      heading.focus();
+    }, { injector: this.injector });
   }
 
   protected async logout(): Promise<void> {

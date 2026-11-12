@@ -9,6 +9,23 @@
   background: #fffdfb;
 }
 
+.skip-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  padding: .75rem 1rem;
+  background: #fffdfb;
+  color: #79413c;
+  border: 2px solid #79413c;
+  border-radius: .5rem;
+  transform: translateY(calc(-100% - 2rem));
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 .header-content {
   width: min(100%, 72rem);
   margin: auto;

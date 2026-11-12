@@ -17,7 +17,7 @@ button, input, a {
   -webkit-tap-highlight-color: transparent;
 }
 
-:is(a, button, input):focus-visible {
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid #a2624a;
   outline-offset: 3px;
 }
