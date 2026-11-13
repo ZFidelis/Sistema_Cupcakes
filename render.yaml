@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+# Preparacao: criar o servico no painel somente quando a publicacao for autorizada.
+services:
+  - type: web
+    name: cupcakes-gourmet
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: off
+    healthCheckPath: /api/status
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      # O ingresso do Render termina HTTPS e encaminha o esquema para o container.
+      - key: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+        value: "true"
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
