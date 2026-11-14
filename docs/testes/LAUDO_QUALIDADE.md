@@ -83,5 +83,3 @@ Os relatórios detalhados da captura e os fontes exportados ficam no contexto in
 ## 5. Conclusão e pendências
 
 Os cinco relatos indicam funcionamento satisfatório das funções que seus autores afirmaram testar e identificam oportunidades de melhoria na administração do catálogo, consulta de pedidos e identificação de avaliações. Os aprimoramentos foram implementados e tiveram validação técnica favorável.
-
-Após as melhorias, o estudante informou que tudo foi testado e aprovado. Esse aceite é do estudante; não equivale a declarar um novo reteste individual dos cinco participantes.
