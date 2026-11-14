@@ -119,6 +119,66 @@ describe('Administrative products list', () => {
   function askDeactivate() {
     page.querySelector<HTMLButtonElement>('.deactivate-product')!.click(); fixture.detectChanges();
   }
+  async function activateRequest() {
+    page.querySelector<HTMLButtonElement>('.activate-product')!.click(); fixture.detectChanges();
+    http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'activate-token' });
+    await Promise.resolve();
+    return http.expectOne(req => req.url === '/api/admin/products/regular/activate' && req.method === 'POST');
+  }
+
+  it('reactivates an inactive product once and reloads its current state', async () => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    const request = await activateRequest();
+    expect(request.request.headers.get('X-XSRF-TOKEN')).toBe('activate-token');
+    expect(request.request.body).toBeNull();
+    expect(page.querySelector<HTMLButtonElement>('.activate-product')!.disabled).toBe(true);
+    page.querySelector<HTMLButtonElement>('.activate-product')!.click();
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush([regular])); await settle();
+    expect(page.querySelector('.activate-product')).toBeNull();
+    expect(page.querySelector('.deactivate-product')).not.toBeNull();
+    expect(page.querySelector('.feedback.success')?.textContent).toContain('Chocolate ativado');
+  });
+
+  it('keeps a reactivated product without stock unavailable', async () => {
+    start().flush([{ ...regular, stock: 0, isActive: false, isAvailable: false }]); await settle();
+    (await activateRequest()).flush(null, { status: 204, statusText: 'No Content' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush([{ ...regular, stock: 0, isAvailable: false }])); await settle();
+    expect(page.querySelector('.admin-product.inactive')).toBeNull();
+    expect(page.querySelector('.admin-product')?.textContent).toContain('Sem estoque');
+  });
+
+  it('reports an uncertain activation without repeating it or changing the card', async () => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    (await activateRequest()).flush(null, { status: 500, statusText: 'Failure' });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(page.querySelector('[role=alert]')?.textContent).toContain('Atualizar lista'); });
+    expect(page.querySelector('.admin-product.inactive')).not.toBeNull();
+    expect(page.querySelector<HTMLButtonElement>('.activate-product')!.disabled).toBe(false);
+    http.expectNone(req => req.method === 'POST');
+  });
+
+  it('refreshes after trying to activate a missing product', async () => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    (await activateRequest()).flush(null, { status: 404, statusText: 'Missing' });
+    await vi.waitFor(() => http.expectOne('/api/admin/products').flush([])); await settle();
+    expect(page.textContent).toContain('Produto não encontrado');
+  });
+
+  it.each([401, 403])('hides administrative data when activation is denied with %s', async status => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    (await activateRequest()).flush(null, { status, statusText: 'Denied' });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(page.querySelector('.admin-products')).toBeNull(); });
+    expect(restoreSession).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+
+  it('ignores an activation response after logout', async () => {
+    start().flush([{ ...regular, isActive: false, isAvailable: false }]); await settle();
+    const request = await activateRequest(); user.set(null); fixture.detectChanges();
+    request.flush(null, { status: 204, statusText: 'No Content' }); await settle();
+    expect(page.querySelector('.admin-products')).toBeNull();
+    expect(page.textContent).not.toContain('Chocolate ativado');
+    http.expectNone('/api/admin/products');
+  });
   async function deleteRequest() {
     page.querySelector<HTMLButtonElement>('.confirm-deactivation')!.click(); fixture.detectChanges();
     http.expectOne('/api/auth/antiforgery').flush({ requestToken: 'delete-token' });

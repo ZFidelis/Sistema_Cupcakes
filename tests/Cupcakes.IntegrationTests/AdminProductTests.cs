@@ -79,7 +79,7 @@ public sealed class AdminProductTests
     }
 
     [TestMethod]
-    public async Task DeactivationIsRepeatableAndPreservesProductAndHistoricalOrder()
+    public async Task DeactivationAndReactivationAreRepeatableAndPreserveProductAndHistoricalOrder()
     {
         var product = await ExistingProductAsync();
         using var scope = app.Services.CreateScope();
@@ -116,6 +116,15 @@ public sealed class AdminProductTests
         Assert.AreEqual(product.Id, historical.Items.Single().ProductId);
         Assert.AreEqual(20m, historical.Items.Single().OriginalUnitPrice);
         Assert.AreEqual(18m, historical.Items.Single().AppliedUnitPrice);
+        for (var attempt = 0; attempt < 2; attempt++)
+            Assert.AreEqual(HttpStatusCode.NoContent, (await client.PostAsync($"/api/admin/products/{product.Id}/activate", null)).StatusCode);
+        var reactivated = await db.Products.AsNoTracking().SingleAsync();
+        Assert.IsTrue(reactivated.IsActive);
+        Assert.AreEqual(9, reactivated.Stock);
+        db.ChangeTracker.Clear();
+        var preserved = await db.Orders.Include(value => value.Items).SingleAsync();
+        Assert.AreEqual(36m, preserved.Total);
+        Assert.AreEqual(18m, preserved.Items.Single().AppliedUnitPrice);
     }
 
     [TestMethod]
@@ -150,6 +159,55 @@ public sealed class AdminProductTests
     {
         using var client = await LoginAsync(AdminEmail);
         Assert.AreEqual(HttpStatusCode.NotFound, (await client.DeleteAsync($"/api/admin/products/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(9)]
+    public async Task ReactivationRestoresCatalogWithoutChangingDetailsOrStock(int stock)
+    {
+        var original = await ExistingProductAsync(false);
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Products.Where(p => p.Id == original.Id).ExecuteUpdateAsync(p => p.SetProperty(x => x.Stock, stock));
+        using var client = await LoginAsync(AdminEmail);
+        for (var attempt = 0; attempt < 2; attempt++)
+            Assert.AreEqual(HttpStatusCode.NoContent, (await client.PostAsync($"/api/admin/products/{original.Id}/activate", null)).StatusCode);
+        var saved = await db.Products.AsNoTracking().SingleAsync();
+        Assert.IsTrue(saved.IsActive);
+        Assert.AreEqual(stock, saved.Stock);
+        Assert.AreEqual(original.Name, saved.Name);
+        Assert.AreEqual(original.Description, saved.Description);
+        Assert.AreEqual(original.Price, saved.Price);
+        Assert.AreEqual(original.PromotionalPrice, saved.PromotionalPrice);
+        var listed = (await client.GetFromJsonAsync<AdminProductResponse[]>("/api/admin/products"))!.Single();
+        Assert.IsTrue(listed.IsActive);
+        Assert.AreEqual(stock > 0, listed.IsAvailable);
+        using var visitor = app.CreateBrowserClient();
+        var catalog = (await visitor.GetFromJsonAsync<ProductResponse[]>("/api/products"))!.Single();
+        Assert.AreEqual(original.Id, catalog.Id);
+        Assert.AreEqual(stock > 0, catalog.IsAvailable);
+    }
+
+    [TestMethod]
+    public async Task ReactivatingMissingProductReturnsNotFound()
+    {
+        using var client = await LoginAsync(AdminEmail);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.PostAsync($"/api/admin/products/{Guid.NewGuid()}/activate", null)).StatusCode);
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    [DataRow("adminWithoutToken", 400)]
+    public async Task ReactivationRequiresAdministratorAndWriteToken(string actor, int status)
+    {
+        var product = await ExistingProductAsync(false);
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync(actor == "customer" ? CustomerEmail : AdminEmail);
+        if (actor == "adminWithoutToken") client.DefaultRequestHeaders.Remove("X-XSRF-TOKEN");
+        Assert.AreEqual((HttpStatusCode)status, (await client.PostAsync($"/api/admin/products/{product.Id}/activate", null)).StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.IsFalse(await scope.ServiceProvider.GetRequiredService<CupcakesDbContext>().Products.Select(value => value.IsActive).SingleAsync());
     }
 
     [TestMethod]

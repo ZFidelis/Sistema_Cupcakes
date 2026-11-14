@@ -53,6 +53,7 @@ public sealed class Product
     public decimal EffectivePrice => PromotionalPrice ?? Price;
 
     public void Deactivate() => IsActive = false;
+    public void Activate() => IsActive = true;
 
     private static string RequiredText(string value, int maxLength, string parameter)
     {

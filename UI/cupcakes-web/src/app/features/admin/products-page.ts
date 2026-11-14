@@ -63,6 +63,34 @@ export class ProductsPage implements OnDestroy {
     this.pendingId.set(product.id); this.actionError.set(''); this.actionMessage.set('');
   }
 
+  protected async activate(product: AdminProduct) {
+    if (!this.isAdmin() || product.isActive || this.busyId()) return;
+    const owner = this.auth.user()!.id;
+    const version = ++this.version;
+    const current = () => this.version === version && this.auth.user()?.id === owner && this.isAdmin();
+    this.pendingId.set(null);
+    this.busyId.set(product.id); this.actionError.set(''); this.actionMessage.set('');
+    try {
+      await this.products.activate(product.id);
+      if (!current()) return;
+      this.busyId.set(null);
+      this.actionMessage.set(product.name + ' ativado.');
+      await this.load();
+    } catch (error) {
+      if (!current()) return;
+      this.busyId.set(null);
+      if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
+        this.items.set([]); this.state.set('denied'); this.message.set('Acesso indisponível. Entre com uma conta de administrador.');
+        if (error.status === 401) void this.auth.restoreSession();
+      } else if (error instanceof HttpErrorResponse && error.status === 404) {
+        this.actionError.set('Produto não encontrado. A lista será atualizada.');
+        await this.load();
+      } else {
+        this.actionError.set('Não foi possível confirmar a ativação. Use Atualizar lista para conferir a situação antes de tentar novamente.');
+      }
+    }
+  }
+
   protected cancelDeactivate() {
     if (!this.busyId()) this.pendingId.set(null);
   }

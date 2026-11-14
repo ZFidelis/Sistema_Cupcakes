@@ -52,6 +52,8 @@
                     </div>
                   </div>
                 }
+              } @else {
+                <button class="button secondary activate-product" type="button" [disabled]="busyId() !== null" (click)="activate(product)">{{ busyId() === product.id ? 'Ativando…' : 'Ativar produto' }}</button>
               }
             </li>
           }
