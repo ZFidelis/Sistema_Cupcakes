@@ -56,6 +56,36 @@ describe('Product reviews interface', () => {
     await open(); publicData(); await render(); expect(page().textContent).toContain('ainda não tem avaliações');
   });
 
+  it('shows the review author only through the administrative endpoint', async () => {
+    user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] }); await open();
+    http.expectOne('/api/admin/products').flush([{ ...product, isActive: true }]);
+    http.expectOne('/api/admin/products/p1/reviews').flush([{ authorEmail: 'client2@example.invalid', review }]);
+    http.expectNone('/api/products/p1/reviews'); await ownMissing();
+    expect(page().querySelector('.review-author')?.textContent).toContain('client2@example.invalid');
+  });
+
+  it('clears author identities on logout and switches to the public endpoint', async () => {
+    user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] }); await open();
+    http.expectOne('/api/admin/products').flush([{ ...product, isActive: true }]);
+    http.expectOne('/api/admin/products/p1/reviews').flush([{ authorEmail: 'client2@example.invalid', review }]); await ownMissing();
+    user.set(null); harness.detectChanges(); publicData([review]); await render();
+    expect(page().querySelector('.review-author')).toBeNull(); expect(page().textContent).not.toContain('client2@example.invalid');
+  });
+
+  it('never renders an author field for a customer even if supplied in a public response', async () => {
+    await open(true); publicData([{ ...review, authorEmail: 'private@example.invalid' }]); await ownMissing();
+    expect(page().querySelector('.review-author')).toBeNull(); expect(page().textContent).not.toContain('private@example.invalid');
+    http.expectNone('/api/admin/products/p1/reviews');
+  });
+
+  it('lets an administrator read preserved reviews of an inactive product', async () => {
+    user.set({ id: 'admin', email: 'admin@example.invalid', roles: ['Administrador'] }); await open();
+    http.expectOne('/api/admin/products').flush([{ ...product, isActive: false }]);
+    http.expectOne('/api/admin/products/p1/reviews').flush([{ authorEmail: 'client2@example.invalid', review }]); await ownMissing();
+    expect(page().querySelector('.review-author')?.textContent).toContain('client2@example.invalid');
+    expect(page().textContent).not.toContain('Produto indisponível');
+  });
+
   it('creates a review without purchase, prevents duplicate submission and refreshes public comments', async () => {
     await open(true); publicData(); await ownMissing(); comment(' Muito bom '); submit(); submit();
     const request = await write();

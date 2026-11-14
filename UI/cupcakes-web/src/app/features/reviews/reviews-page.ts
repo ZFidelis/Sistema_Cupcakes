@@ -1,12 +1,13 @@
 import { DatePipe, registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { AdminProductsService } from '../../core/admin/admin-products.service';
 import { CatalogService, Product } from '../../core/catalog/catalog.service';
 import { ProductReview, ReviewsService } from '../../core/reviews/reviews.service';
 
@@ -22,8 +23,10 @@ const commentText: ValidatorFn = control => {
 })
 export class ReviewsPage implements OnDestroy {
   protected readonly auth = inject(AuthService);
+  protected readonly isAdmin = computed(() => this.auth.user()?.roles.includes('Administrador') === true);
   private readonly api = inject(ReviewsService);
   private readonly catalog = inject(CatalogService);
+  private readonly adminProducts = inject(AdminProductsService);
   private readonly route = inject(ActivatedRoute);
   private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
   protected readonly product = signal<Product | null>(null);
@@ -55,7 +58,9 @@ export class ReviewsPage implements OnDestroy {
     this.submitted.set(false); this.notice.set(''); this.error.set(''); this.state.set('loading');
     this.ownState.set(owner ? 'loading' : 'anonymous');
     try {
-      const [products, reviews] = await Promise.all([firstValueFrom(this.catalog.list()), this.api.list(id)]);
+      const [products, reviews] = await Promise.all([
+        this.isAdmin() ? this.adminProducts.list() : firstValueFrom(this.catalog.list()), this.listReviews(id),
+      ]);
       if (!current()) return;
       const product = products.find(value => value.id.toLowerCase() === id.toLowerCase());
       if (!product) { this.state.set('missing'); return; }
@@ -95,7 +100,7 @@ export class ReviewsPage implements OnDestroy {
       this.mine.set(saved); this.form.setValue({ rating: String(saved.rating), comment: saved.comment });
       this.notice.set('Sua avaliação foi salva.'); this.submitted.set(false);
       try {
-        const reviews = await this.api.list(id);
+        const reviews = await this.listReviews(id);
         if (current()) this.reviews.set(reviews);
       } catch {
         if (current()) this.error.set('A avaliação foi salva, mas a lista não pôde ser atualizada. Use Atualizar avaliações.');
@@ -110,4 +115,6 @@ export class ReviewsPage implements OnDestroy {
       } else this.error.set('Não foi possível confirmar a avaliação. Confira os campos ou use Atualizar avaliações antes de tentar novamente.');
     } finally { if (current()) this.busy.set(false); }
   }
+
+  private listReviews(id: string) { return this.isAdmin() ? this.api.adminList(id) : this.api.list(id); }
 }

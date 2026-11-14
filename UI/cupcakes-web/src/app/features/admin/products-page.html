@@ -41,6 +41,7 @@
                 <div><dt>Disponibilidade</dt><dd>{{ !product.isActive ? 'Fora da vitrine' : (product.isAvailable ? 'Disponível' : 'Sem estoque') }}</dd></div>
               </dl>
               <a class="button secondary" [routerLink]="['/admin/produtos', product.id, 'editar']" [attr.aria-label]="'Editar ' + product.name">Editar produto</a>
+              <a class="button secondary" [routerLink]="['/produtos', product.id, 'avaliacoes']" [attr.aria-label]="'Ver avaliações de ' + product.name">Ver avaliações</a>
               @if (product.isActive) {
                 <button class="button secondary deactivate-product" type="button" [disabled]="busyId() !== null" (click)="askDeactivate(product)">Desativar produto</button>
                 @if (pendingId() === product.id) {

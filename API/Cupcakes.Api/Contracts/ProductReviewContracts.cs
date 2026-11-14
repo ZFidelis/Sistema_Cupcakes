@@ -17,3 +17,5 @@ public sealed class UpdateProductReviewRequest
 
 public sealed record ProductReviewResponse(Guid Id, Guid ProductId, int Rating, string Comment,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+
+public sealed record AdminProductReviewResponse(string AuthorEmail, ProductReviewResponse Review);

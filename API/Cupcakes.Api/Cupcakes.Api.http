@@ -211,3 +211,12 @@ Accept: application/json
 ### Documento OpenAPI (Development)
 GET {{baseUrl}}/openapi/v1.json
 Accept: application/json
+
+GET {{baseUrl}}/api/orders?startDate=2026-11-14&endDate=2026-11-14&status=Entregue
+Accept: application/json
+
+GET {{baseUrl}}/api/admin/orders?startDate=2026-11-14&endDate=2026-11-14&status=Recebido&orderId=00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+GET {{baseUrl}}/api/admin/products/b8b95c22-a515-4f4b-a750-57343a6b0101/reviews
+Accept: application/json

@@ -36,7 +36,9 @@
     @if (reviews().length === 0) { <p class="feedback" role="status">Este cupcake ainda não tem avaliações.</p> }
     <ul class="reviews-list" aria-label="Avaliações do produto">
       @for (review of reviews(); track review.id) {
-        <li class="review-card"><h3>Nota {{ review.rating }} de 5{{ mine()?.id === review.id ? ' — Sua avaliação' : '' }}</h3><p class="review-comment">{{ review.comment }}</p><p>Atualizada em {{ review.updatedAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p></li>
+        <li class="review-card"><h3>Nota {{ review.rating }} de 5{{ mine()?.id === review.id ? ' — Sua avaliação' : '' }}</h3>
+          @if (isAdmin() && review.authorEmail) { <p class="review-author">Autor: {{ review.authorEmail }}</p> }
+          <p class="review-comment">{{ review.comment }}</p><p>Atualizada em {{ review.updatedAt | date:'dd/MM/yyyy HH:mm':'':'pt-BR' }}</p></li>
       }
     </ul>
   }

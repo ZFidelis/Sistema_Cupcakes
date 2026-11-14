@@ -7,6 +7,18 @@ namespace Cupcakes.Api.Services;
 
 public sealed class ProductReviewService(CupcakesDbContext db)
 {
+    public async Task<AdminProductReviewResponse[]?> AdminListAsync(Guid productId, CancellationToken ct)
+    {
+        if (!await db.Products.AnyAsync(product => product.Id == productId, ct)) return null;
+        return await (from review in db.ProductReviews.AsNoTracking()
+                      join author in db.Users on review.UserId equals author.Id
+                      where review.ProductId == productId
+                      orderby review.UpdatedAt descending, review.Id descending
+                      select new AdminProductReviewResponse(author.Email!,
+                          new ProductReviewResponse(review.Id, review.ProductId, review.Rating, review.Comment,
+                              review.CreatedAt, review.UpdatedAt))).ToArrayAsync(ct);
+    }
+
     public async Task<ProductReviewResponse[]?> ListAsync(Guid productId, CancellationToken ct)
     {
         if (!await db.Products.AnyAsync(product => product.Id == productId && product.IsActive, ct)) return null;

@@ -4,12 +4,18 @@ import { firstValueFrom } from 'rxjs';
 
 export interface ProductReview {
   id: string; productId: string; rating: number; comment: string; createdAt: string; updatedAt: string;
+  authorEmail?: string;
 }
 @Injectable({ providedIn: 'root' })
 export class ReviewsService {
   private readonly http = inject(HttpClient);
   private url(id: string) { return '/api/products/' + encodeURIComponent(id) + '/reviews'; }
   list(id: string) { return firstValueFrom(this.http.get<ProductReview[]>(this.url(id))); }
+  async adminList(id: string): Promise<ProductReview[]> {
+    const result = await firstValueFrom(this.http.get<{ authorEmail: string; review: ProductReview }[]>(
+      '/api/admin/products/' + encodeURIComponent(id) + '/reviews'));
+    return result.map(value => ({ ...value.review, authorEmail: value.authorEmail }));
+  }
   mine(id: string) { return firstValueFrom(this.http.get<ProductReview>(this.url(id) + '/mine')); }
   async save(id: string, rating: number, comment: string) {
     const token = await firstValueFrom(this.http.get<{ requestToken: string }>('/api/auth/antiforgery'));

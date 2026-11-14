@@ -18,6 +18,7 @@ public sealed class ProductReviewTests
     private static Guid productId;
     private const string First = "review-first@example.invalid";
     private const string Second = "review-second@example.invalid";
+    private const string Admin = "review-admin@example.invalid";
     private const string Password = "AvaliacaoTeste123";
     private static string Url => $"/api/products/{productId}/reviews";
 
@@ -29,6 +30,7 @@ public sealed class ProductReviewTests
         var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
         Assert.IsFalse(db.Database.HasPendingModelChanges());
         Assert.AreEqual(0, await db.ProductReviews.CountAsync());
+        Assert.IsTrue((await scope.ServiceProvider.GetRequiredService<AdminProvisioningService>().ProvisionAsync(Admin, Password)).Succeeded);
         foreach (var email in new[] { First, Second })
             Assert.IsTrue((await scope.ServiceProvider.GetRequiredService<RegistrationService>()
                 .RegisterAsync(new RegisterRequest { Email = email, Password = Password }, default)).Result.Succeeded);
@@ -60,6 +62,46 @@ public sealed class ProductReviewTests
         var response = await client.PutAsJsonAsync(Url + "/mine", new { rating, comment });
         Assert.IsTrue(response.StatusCode is HttpStatusCode.Created or HttpStatusCode.OK);
         return (await response.Content.ReadFromJsonAsync<ProductReviewResponse>())!;
+    }
+
+    [TestMethod]
+    public async Task AdministratorSeesCorrectAuthorsWhilePublicResponsesRemainAnonymous()
+    {
+        using var first = await LoginAsync(First); using var second = await LoginAsync(Second); using var admin = await LoginAsync(Admin);
+        var one = await SaveAsync(first, 5, "Primeiro comentário"); var two = await SaveAsync(second, 4, "Segundo comentário");
+        var response = await admin.GetAsync($"/api/admin/products/{productId}/reviews");
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode); Assert.IsTrue(response.Headers.CacheControl!.NoStore);
+        var values = (await response.Content.ReadFromJsonAsync<AdminProductReviewResponse[]>())!;
+        Assert.HasCount(2, values);
+        Assert.AreEqual(First, values.Single(v => v.Review.Id == one.Id).AuthorEmail);
+        Assert.AreEqual(Second, values.Single(v => v.Review.Id == two.Id).AuthorEmail);
+        using var visitor = app.CreateBrowserClient();
+        foreach (var client in new[] { visitor, first, admin })
+        {
+            var publicJson = await client.GetStringAsync(Url);
+            Assert.IsFalse(publicJson.Contains(First) || publicJson.Contains(Second) || publicJson.Contains("authorEmail") || publicJson.Contains("userId"));
+        }
+    }
+
+    [TestMethod]
+    [DataRow("visitor", 401)]
+    [DataRow("customer", 403)]
+    public async Task ReviewAuthorsAreRestrictedToAdministrators(string actor, int expected)
+    {
+        using var client = actor == "visitor" ? app.CreateBrowserClient() : await LoginAsync();
+        Assert.AreEqual((HttpStatusCode)expected, (await client.GetAsync($"/api/admin/products/{productId}/reviews")).StatusCode);
+    }
+
+    [TestMethod]
+    public async Task AdministrativeReviewsHandleEmptyMissingAndInactiveProducts()
+    {
+        using var admin = await LoginAsync(Admin);
+        Assert.HasCount(0, (await admin.GetFromJsonAsync<AdminProductReviewResponse[]>($"/api/admin/products/{productId}/reviews"))!);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await admin.GetAsync($"/api/admin/products/{Guid.NewGuid()}/reviews")).StatusCode);
+        using var owner = await LoginAsync(); await SaveAsync(owner);
+        using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<CupcakesDbContext>();
+        await db.Products.Where(p => p.Id == productId).ExecuteUpdateAsync(p => p.SetProperty(x => x.IsActive, false));
+        Assert.HasCount(1, (await admin.GetFromJsonAsync<AdminProductReviewResponse[]>($"/api/admin/products/{productId}/reviews"))!);
     }
 
     [TestMethod]
