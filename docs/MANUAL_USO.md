@@ -16,6 +16,8 @@ Esta aplicação é uma demonstração acadêmica. Utilize contas e endereços f
 
 **Acompanhar o pedido.** Abra **Meus pedidos** e escolha uma compra para consultar itens, endereço, total e histórico de status. O andamento é atualizado manualmente pela administração. Não existe mapa ou rastreamento real.
 
+**Filtrar pedidos.** Em **Meus pedidos**, informe data inicial, data final e/ou status e use **Aplicar filtros**. As duas datas são incluídas e representam o horário de São Paulo. **Limpar filtros** volta à lista completa dos seus pedidos. Nenhum filtro permite consultar pedidos de outra conta.
+
 **Avaliar um produto.** Abra as avaliações do cupcake, escolha uma nota de 1 a 5 e escreva um comentário. O cliente pode atualizar a própria avaliação.
 
 **Encerrar o acesso.** Utilize **Sair** ao terminar.
@@ -26,11 +28,17 @@ O acesso administrativo depende de uma conta com permissão específica. O cadas
 
 **Gerenciar produtos.** Em **Produtos**, consulte o catálogo, cadastre novos cupcakes, edite descrição, preços e estoque ou desative itens. Produtos desativados deixam de aparecer para novos pedidos, mas permanecem no histórico de compras anteriores.
 
+**Reativar produtos.** Nos itens inativos, utilize **Ativar produto**. O produto volta à vitrine com o mesmo preço e estoque; estoque zero continua impedindo compra.
+
+**Identificar avaliações.** Na administração de produtos, selecione **Ver avaliações**. Administradores veem o e-mail atual do autor de cada comentário, inclusive em produtos desativados. Essa identificação não aparece para visitantes ou clientes.
+
 **Acompanhar pedidos.** Em **Pedidos da loja**, consulte os pedidos fictícios e avance o status seguindo a ordem:
 
 **Recebido → Em preparo → Saiu para entrega → Entregue.**
 
 O sistema registra o histórico das alterações. A versão não possui cancelamento nem integração com transportadoras.
+
+Na lista **Pedidos da loja**, é possível combinar período, status e **ID completo do pedido**. Cole o identificador mostrado no pedido, aplique os filtros ou use **Limpar filtros** para voltar à lista inteira.
 
 **Consultar relatórios.** Em **Relatório de vendas**, selecione o período diário ou semanal e gere a consulta. É possível solicitar arquivos em PDF e planilha XLSX. Os dados representam apenas pedidos fictícios aprovados.
 

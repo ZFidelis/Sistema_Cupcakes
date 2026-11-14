@@ -4,14 +4,14 @@
 
 Os testes foram utilizados para conferir se as funções da loja apresentam o comportamento esperado e se as informações são mantidas corretamente. Há registros de validação automática da API e do Angular, testes em navegador e verificações da publicação. **Esses resultados técnicos não substituem os testes solicitados a cinco colegas ou profissionais da área.**
 
-As informações a seguir foram consolidadas a partir dos relatórios produzidos durante o desenvolvimento. Não representam uma nova execução feita na data desta síntese.
+As informações a seguir reúnem os registros anteriores e após as melhorias apontadas nos cinco relatos. O [laudo de qualidade](LAUDO_QUALIDADE.md) distingue os relatos humanos, as verificações técnicas e o reteste público ainda pendente das novas funções.
 
 ## 2. Resultados técnicos registrados
 
 | Verificação | Resultado registrado | Alcance |
 | --- | --- | --- |
-| Testes da API e regras de negócio | **339 testes aprovados** na revisão integrada de 11/11/2026. | Cadastro, autorização, carrinho, pedido, banco, estoque e regras administrativas, entre outros cenários. |
-| Testes do Angular | **203 testes aprovados** na revisão de usabilidade de 11/11/2026. | Componentes e comportamentos da interface; não equivale a avaliação humana. |
+| Testes da API e regras de negócio | **358 testes aprovados**, zero falhas/ignorados, em 14/11/2026. | Inclui filtros de pedidos e acesso administrativo aos autores das avaliações, com banco temporário isolado. |
+| Testes do Angular | **217 testes aprovados** e build de produção aprovado em 14/11/2026. | Componentes e comportamentos da interface; não equivale a avaliação humana. |
 | Fluxo de compra em navegador local | Realizado com Angular, API e PostgreSQL de teste. | Carrinho, valores, endereço, recusa, aprovação, consulta do pedido e acesso isolado por usuário. |
 | Usabilidade básica | Roteiros registrados em navegador, incluindo 360 px e 1280 px. | Teclado, foco, rótulos, mensagens e adaptação de algumas telas. |
 | Publicação no Render/Neon | Em 13/11/2026, o relatório registra **23 verificações HTTPS** e **6 verificações em navegador** aprovadas. | Acesso à vitrine, login administrativo, APIs, arquivos publicados e navegação principal. |
@@ -40,30 +40,28 @@ Exemplo de acompanhamento administrativo:
 
 ## 4. Ajustes identificados durante a revisão técnica
 
+O [laudo de qualidade](LAUDO_QUALIDADE.md#41-origem-das-capturas-de-antes-e-depois) inclui quatro comparações visuais de antes e depois: reativação, filtros administrativos, filtros do cliente e identificação do autor das avaliações. As capturas foram obtidas de interfaces reais de commits anteriores e da versão atual, com os mesmos dados fictícios em ambiente isolado; não são imagens das sessões dos participantes.
+
 Na revisão de navegação por teclado, foi observado que o foco nem sempre acompanhava corretamente a mudança de página. O tratamento foi ajustado e o roteiro repetido com resultado favorável. Também foi incorporado um atalho de teclado para avançar ao conteúdo principal.
 
-Esse ajuste é uma correção técnica registrada durante o desenvolvimento, **não uma reclamação de participante**. O documento final de qualidade deverá separar falhas descobertas pela equipe dos apontamentos recebidos nos cinco testes externos.
+Esse ajuste é uma correção técnica registrada durante o desenvolvimento, **não uma reclamação de participante**.
 
 ## 5. Limitações e verificações pendentes
 
 - A versão acadêmica não envia e-mails, não realiza pagamentos reais e não rastreia entregadores.
 - As metas de desempenho em segundos do planejamento original não foram medidas de forma conclusiva.
-- Os arquivos PDF de relatório foram verificados programaticamente, mas a apresentação visual ainda requer conferência; os rótulos registrados não utilizam todos os acentos.
-- A publicação foi conferida em acessos e fluxos selecionados. O relatório de 13/11/2026 não registra compra pública completa ou persistência após reinício do serviço.
-- Não há relato documentado dos cinco avaliadores nem comprovação de correções decorrentes desses feedbacks.
-- Os vídeos exigidos no formulário de entrega ainda precisam ser gravados.
 
-## 6. Testes com cinco avaliadores — a preencher após a realização
+## 6. Testes com cinco avaliadores — relatos recebidos
 
 O formulário da disciplina pede, para cada pessoa, **nome, data, o que funcionou, o que não funcionou e funcionalidades não testadas**. Recomenda-se fornecer o link publicado e solicitar que cada participante execute ações como consultar catálogo, cadastrar-se, montar carrinho, finalizar compra simulada e consultar pedidos.
 
 | Participante | Data | Funcionou | Problemas e correções sugeridas | Não testado e motivo |
 | --- | --- | --- | --- | --- |
-| 1 — a preencher | — | — | — | — |
-| 2 — a preencher | — | — | — | — |
-| 3 — a preencher | — | — | — | — |
-| 4 — a preencher | — | — | — | — |
-| 5 — a preencher | — | — | — | — |
+| Lucas Buchner | 13/11/2026 | Funções administrativas relatadas como funcionais. | Reativação de produtos. | Reativação ausente na versão avaliada. |
+| Gabryel Gimenez | 14/11/2026 | Funções administrativas relatadas como funcionais. | Filtros por data, status e ID. | Filtros ausentes na versão avaliada. |
+| Tobias Gavloski | 14/11/2026 | Produtos, carrinho, pedido e avaliações. | Filtros dos pedidos por status e data. | Filtros ausentes na versão avaliada. |
+| Leonardo Maros | 14/11/2026 | Produtos, carrinho, pedido e avaliações. | Filtros dos pedidos por status e data. | Filtros ausentes na versão avaliada. |
+| Pedro Magalhães | 14/11/2026 | Funções administrativas relatadas como funcionais. | Ver autor da avaliação somente na administração. | Identificação ausente na versão avaliada. |
 
 Preencher somente após os testes reais. Capturas devem registrar defeitos encontrados ou mostrar o resultado das correções, quando pertinente. As cinco opiniões deverão ser reunidas conforme a orientação acadêmica.
 

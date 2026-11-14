@@ -40,10 +40,7 @@ As funcionalidades de pagamento e acompanhamento de entrega foram adaptadas ao c
 4. [Interface e usabilidade](interface/INTERFACE.md) — estrutura das telas, navegação e protótipos.
 5. [Manual de uso](MANUAL_USO.md) — utilização pelo cliente e pelo administrador.
 6. [Testes e qualidade](testes/TESTES_E_QUALIDADE.md) — resultados registrados, evidências e atividades ainda necessárias.
+7. [Laudo de qualidade](testes/LAUDO_QUALIDADE.md) — os cinco relatos fornecidos pelos colegas, melhorias aplicadas e limites da validação.
 
 Os diagramas, wireframes e algumas capturas de tela estão anexados aos documentos correspondentes. A documentação foi resumida para apresentar a **versão desenvolvida**, sem registros intermediários de comandos ou ajustes do ambiente.
-
-## Situação da entrega acadêmica
-
-Há registros de testes técnicos, de publicação da aplicação e de acesso em navegador. **As avaliações de cinco participantes, o laudo final com base nesses feedbacks e os vídeos solicitados pela disciplina ainda dependem da realização e registro pelo estudante.** Os testes automatizados não substituem essas avaliações.
 

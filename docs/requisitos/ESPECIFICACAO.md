@@ -34,7 +34,7 @@ As prioridades A, B e C representam a organização original do backlog, não o 
 | US10 | A | Confirmação na tela, número de referência e consulta posterior do pedido. |
 | US11 | B | Acompanhamento do status do pedido atualizado manualmente pelo administrador. |
 | US12 | B | Cadastro de produtos pela administração. |
-| US13 | B | Edição de produtos, atualização de estoque e desativação do catálogo público. |
+| US13 | B | Edição de produtos, atualização de estoque, desativação e reativação do catálogo público. |
 | US14 | C | Relatórios de vendas simuladas por dia ou semana, com opções de PDF e planilha. |
 | US15 | C | Avaliações com nota e comentário, publicadas e editadas pelo próprio cliente. |
 
@@ -50,6 +50,12 @@ A gestão administrativa de pedidos foi incluída como apoio à US11, para permi
 - **Entrega:** a sequência de status é **Recebido → Em preparo → Saiu para entrega → Entregue**. O administrador realiza as atualizações, que ficam no histórico.
 - **Avaliações:** o cliente pode informar nota de 1 a 5 e comentário; existe apenas uma avaliação por combinação de usuário e produto, passível de edição pelo autor.
 - **Relatórios:** as informações representam pedidos com pagamentos fictícios aprovados, não faturamento real da loja.
+
+### Refinamentos após os cinco relatos de avaliação
+
+Em 14/11/2026, os relatos fornecidos motivaram três melhorias: reativação de produtos (Lucas); filtros de pedidos por período/status, com ID completo adicional para administradores (Gabryel, Tobias e Leonardo); e identificação do autor da avaliação por e-mail somente para administradores (Pedro).
+
+Os filtros são combináveis, usam as datas de criação inclusivas no horário de São Paulo e mantêm a restrição de pedidos por cliente. Datas invertidas, status inválido e ID administrativo inválido são rejeitados. Sem filtros, mantém-se a lista completa, ordenada dos mais recentes para os mais antigos. O e-mail do autor não integra o contrato público de avaliações. Essas mudanças não exigem alteração do esquema do banco.
 
 ## 5. Requisitos de qualidade considerados
 
