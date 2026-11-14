@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import type { ConfirmedOrder } from '../checkout/checkout.service';
@@ -15,9 +15,16 @@ export interface OrderDetail {
   notice: string;
 }
 
+export interface OrderFilters { startDate?: string; endDate?: string; status?: string; orderId?: string; }
+export function orderFilterParams(filters: OrderFilters): HttpParams {
+  let params = new HttpParams();
+  for (const [key, value] of Object.entries(filters)) if (value) params = params.set(key, value);
+  return params;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OrdersService {
   private readonly http = inject(HttpClient);
-  list() { return firstValueFrom(this.http.get<OrderSummary[]>('/api/orders')); }
+  list(filters: OrderFilters = {}) { return firstValueFrom(this.http.get<OrderSummary[]>('/api/orders', { params: orderFilterParams(filters) })); }
   detail(id: string) { return firstValueFrom(this.http.get<OrderDetail>('/api/orders/' + encodeURIComponent(id))); }
 }

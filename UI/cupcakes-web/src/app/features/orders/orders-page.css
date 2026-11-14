@@ -99,3 +99,37 @@ address {
   border-radius: .5rem;
   background: #f6efeb;
 }
+
+.order-filters {
+  margin: 1.5rem 0;
+}
+
+.order-filters fieldset {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #e1d6d2;
+  border-radius: .5rem;
+}
+
+.filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+
+.filter-fields label {
+  display: grid;
+  gap: .5rem;
+}
+
+.filter-fields input,
+.filter-fields select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding: .5rem;
+  border: 1px solid #79413c;
+  border-radius: .5rem;
+  background: white;
+  font: inherit;
+}

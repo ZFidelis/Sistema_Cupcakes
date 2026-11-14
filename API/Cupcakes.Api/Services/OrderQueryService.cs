@@ -6,8 +6,8 @@ namespace Cupcakes.Api.Services;
 
 public sealed class OrderQueryService(CupcakesDbContext db)
 {
-    public async Task<OrderSummaryResponse[]> ListAsync(string userId, CancellationToken ct) =>
-        await db.Orders.AsNoTracking().Where(order => order.UserId == userId)
+    public async Task<OrderSummaryResponse[]> ListAsync(string userId, OrderFilterRequest filters, CancellationToken ct) =>
+        await OrderFilters.Apply(db.Orders.AsNoTracking().Where(order => order.UserId == userId), filters)
             .OrderByDescending(order => order.CreatedAt).ThenByDescending(order => order.Id)
             .Select(order => new OrderSummaryResponse(order.Id, order.CreatedAt, order.Status.ToString(),
                 order.PaymentMethod.ToString(), order.PaymentResult,

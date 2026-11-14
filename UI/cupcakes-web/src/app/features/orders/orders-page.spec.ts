@@ -32,6 +32,28 @@ describe('OrdersPage', () => {
   });
 
   const page = () => harness.routeNativeElement!;
+  function setFilter(id: string, value: string) {
+    const input = page().querySelector<HTMLInputElement | HTMLSelectElement>('#' + id)!;
+    input.value = value; input.dispatchEvent(new Event(input.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  }
+  it('applies customer date/status filters, shows an empty result and clears them', async () => {
+    await open();
+    expect(page().querySelector('#order-id-filter')).toBeNull();
+    setFilter('order-start-date', '2026-11-14'); setFilter('order-end-date', '2026-11-14'); setFilter('order-status-filter', 'Entregue');
+    api.list.mockResolvedValue([]);
+    page().querySelector<HTMLFormElement>('.order-filters')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await render();
+    expect(api.list).toHaveBeenLastCalledWith({ startDate: '2026-11-14', endDate: '2026-11-14', status: 'Entregue' });
+    expect(page().textContent).toContain('Nenhum pedido encontrado com os filtros');
+    page().querySelector<HTMLButtonElement>('#clear-order-filters')!.click(); await render();
+    expect(api.list).toHaveBeenLastCalledWith({});
+  });
+
+  it('does not request reversed periods', async () => {
+    await open(); const calls = api.list.mock.calls.length;
+    setFilter('order-start-date', '2026-11-15'); setFilter('order-end-date', '2026-11-14');
+    page().querySelector<HTMLFormElement>('.order-filters')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await render();
+    expect(api.list).toHaveBeenCalledTimes(calls); expect(page().textContent).toContain('Confira o período');
+  });
   async function render() { harness.detectChanges(); await harness.fixture.whenStable(); harness.detectChanges(); }
   async function open(path = '/pedidos') {
     harness = await RouterTestingHarness.create(); await harness.navigateByUrl(path, OrdersPage); await render();

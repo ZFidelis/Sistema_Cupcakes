@@ -34,6 +34,20 @@ describe('Administrative orders interface', () => {
     http = TestBed.inject(HttpTestingController); harness = await RouterTestingHarness.create();
   });
   afterEach(() => http.verify());
+  it('sends combined administrative filters and clears them on demand', async () => {
+    await open(); http.expectOne('/api/admin/orders').flush([]); await render();
+    const values = { 'order-start-date': '2026-11-14', 'order-end-date': '2026-11-14', 'order-status-filter': 'Entregue', 'order-id-filter': 'b8b95c22-a515-4f4b-a750-57343a6b0101' };
+    for (const [id, value] of Object.entries(values)) {
+      const input = page().querySelector<HTMLInputElement | HTMLSelectElement>('#' + id)!;
+      input.value = value; input.dispatchEvent(new Event(input.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+    }
+    page().querySelector<HTMLFormElement>('.order-filters')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    const request = http.expectOne(req => req.url === '/api/admin/orders' && req.params.get('orderId') === values['order-id-filter']);
+    expect(request.request.params.get('status')).toBe('Entregue'); expect(request.request.params.get('endDate')).toBe('2026-11-14');
+    request.flush([]); await render(); expect(page().textContent).toContain('Nenhum pedido encontrado com os filtros');
+    page().querySelector<HTMLButtonElement>('#clear-order-filters')!.click();
+    http.expectOne(req => req.url === '/api/admin/orders' && req.params.keys().length === 0).flush([]); await render();
+  });
   const page = () => harness.routeNativeElement!;
   async function open(path = '/admin/pedidos') { await harness.navigateByUrl(path); }
   async function render() { await harness.fixture.whenStable(); harness.detectChanges(); }

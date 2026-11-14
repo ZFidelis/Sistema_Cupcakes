@@ -35,8 +35,8 @@ public sealed class AdminOrdersController(AdminOrderQueryService orders, OrderSt
     [ProducesResponseType<AdminOrderSummaryResponse[]>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<AdminOrderSummaryResponse[]>> List(CancellationToken ct) =>
-        Ok(await orders.ListAsync(ct));
+    public async Task<ActionResult<AdminOrderSummaryResponse[]>> List([FromQuery] AdminOrderFilterRequest filters, CancellationToken ct) =>
+        Ok(await orders.ListAsync(filters, ct));
 
     [HttpGet("{orderId:guid}")]
     [ProducesResponseType<AdminOrderDetailResponse>(StatusCodes.Status200OK)]

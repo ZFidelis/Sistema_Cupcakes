@@ -15,8 +15,8 @@ public sealed class OrdersController(OrderQueryService orders) : ControllerBase
     [HttpGet]
     [ProducesResponseType<OrderSummaryResponse[]>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<OrderSummaryResponse[]>> List(CancellationToken ct) =>
-        Ok(await orders.ListAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, ct));
+    public async Task<ActionResult<OrderSummaryResponse[]>> List([FromQuery] OrderFilterRequest filters, CancellationToken ct) =>
+        Ok(await orders.ListAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, filters, ct));
 
     [HttpGet("{orderId:guid}")]
     [ProducesResponseType<OrderDetailResponse>(StatusCodes.Status200OK)]

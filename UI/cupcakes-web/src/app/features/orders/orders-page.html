@@ -9,6 +9,22 @@
       <button id="refresh-orders" class="button secondary" type="button" [disabled]="state() === 'loading' || statusBusy()" (click)="refresh()">{{ orderId() ? 'Atualizar pedido' : 'Atualizar pedidos' }}</button>
     }
   </div>
+  @if (!orderId() && canRead()) {
+    <form class="order-filters" [formGroup]="filters" (ngSubmit)="applyFilters()" novalidate>
+      <fieldset [disabled]="state() === 'loading' || statusBusy()">
+        <legend>Filtrar pedidos</legend>
+        <p>Período de criação do pedido, incluindo as duas datas, no horário de São Paulo.</p>
+        <div class="filter-fields">
+          <label>Data inicial<input id="order-start-date" type="date" formControlName="startDate" /></label>
+          <label>Data final<input id="order-end-date" type="date" formControlName="endDate" /></label>
+          <label>Status<select id="order-status-filter" formControlName="status"><option value="">Todos</option><option value="Recebido">Recebido</option><option value="EmPreparo">Em preparo</option><option value="SaiuParaEntrega">Saiu para entrega</option><option value="Entregue">Entregue</option></select></label>
+          @if (administrative) { <label>ID completo do pedido<input id="order-id-filter" formControlName="orderId" maxlength="36" placeholder="Cole o ID do pedido" /></label> }
+        </div>
+        <div class="order-actions"><button id="apply-order-filters" class="button" type="submit">Aplicar filtros</button><button id="clear-order-filters" class="button secondary" type="button" (click)="clearFilters()">Limpar filtros</button></div>
+      </fieldset>
+      @if (filterError()) { <p class="feedback error" role="alert">{{ filterError() }}</p> }
+    </form>
+  }
   @if (message()) { <p class="feedback error" role="alert">{{ message() }}</p> }
   @if (statusNotice()) { <p class="feedback success" role="status">{{ statusNotice() }}</p> }
   @if (statusError()) { <p class="feedback error" role="alert">{{ statusError() }}</p> }
@@ -27,7 +43,7 @@
     <p class="feedback" role="status">{{ administrative ? 'Pedido não encontrado.' : 'Pedido não encontrado ou indisponível para sua conta.' }}</p>
   } @else if (!orderId()) {
     @if (list().length === 0) {
-      <p class="feedback" role="status">{{ administrative ? 'Nenhum pedido registrado na loja.' : 'Você ainda não tem pedidos. Escolha seus cupcakes na vitrine para começar.' }}</p>
+      <p class="feedback" role="status">{{ hasFilters() ? 'Nenhum pedido encontrado com os filtros informados.' : (administrative ? 'Nenhum pedido registrado na loja.' : 'Você ainda não tem pedidos. Escolha seus cupcakes na vitrine para começar.') }}</p>
     } @else {
       <ul class="order-list" [attr.aria-label]="administrative ? 'Pedidos da loja, mais recentes primeiro' : 'Seus pedidos, mais recentes primeiro'">
         @for (item of list(); track item.id) {

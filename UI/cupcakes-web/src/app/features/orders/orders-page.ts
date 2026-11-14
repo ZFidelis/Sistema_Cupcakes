@@ -4,14 +4,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
-import { OrderDetail, OrderSummary, OrdersService } from '../../core/orders/orders.service';
+import { OrderDetail, OrderSummary, OrderFilters, OrdersService } from '../../core/orders/orders.service';
 import { AdminOrdersService } from '../../core/admin/admin-orders.service';
 
 registerLocaleData(localePt);
 
 @Component({
-  selector: 'app-orders-page', imports: [CurrencyPipe, DatePipe, RouterLink],
+  selector: 'app-orders-page', imports: [CurrencyPipe, DatePipe, RouterLink, ReactiveFormsModule],
   templateUrl: './orders-page.html', styleUrl: './orders-page.css',
 })
 export class OrdersPage implements OnDestroy {
@@ -34,6 +35,12 @@ export class OrdersPage implements OnDestroy {
   protected readonly statusNotice = signal('');
   protected readonly statusError = signal('');
   protected readonly requiresRefresh = signal(false);
+  protected readonly filters = inject(FormBuilder).nonNullable.group({
+    startDate: [''], endDate: [''], status: [''],
+    orderId: ['', Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)],
+  });
+  protected readonly filterError = signal('');
+  protected readonly appliedFilters = signal<OrderFilters>({});
   protected readonly nextStatus = computed(() => {
     if (!this.administrative || !this.canRead() || this.state() !== 'ready') return null;
     const next: Record<string, string> = { Recebido: 'EmPreparo', EmPreparo: 'SaiuParaEntrega', SaiuParaEntrega: 'Entregue' };
@@ -48,6 +55,7 @@ export class OrdersPage implements OnDestroy {
       this.version++;
       this.list.set([]); this.detail.set(null); this.message.set('');
       this.customerEmails.set({}); this.customerEmail.set('');
+      this.filters.reset(); this.appliedFilters.set({}); this.filterError.set('');
       this.statusBusy.set(false); this.statusNotice.set(''); this.statusError.set(''); this.requiresRefresh.set(false);
       if (this.administrative && !this.canRead()) this.state.set('denied');
       else if (user) untracked(() => void this.load(id));
@@ -58,6 +66,26 @@ export class OrdersPage implements OnDestroy {
   ngOnDestroy() { this.version++; }
 
   protected async refresh(): Promise<void> { await this.load(this.orderId()); }
+
+  protected async applyFilters() {
+    if (this.state() === 'loading') return;
+    const value = this.filters.getRawValue();
+    this.filterError.set('');
+    if (this.filters.invalid || (value.startDate && value.endDate && value.startDate > value.endDate)) {
+      this.filterError.set('Confira o período e informe um ID completo válido quando utilizar esse filtro.');
+      return;
+    }
+    this.appliedFilters.set({ startDate: value.startDate, endDate: value.endDate, status: value.status,
+      ...(this.administrative ? { orderId: value.orderId.trim() } : {}) });
+    await this.load(null);
+  }
+
+  protected async clearFilters() {
+    this.filters.reset(); this.appliedFilters.set({}); this.filterError.set('');
+    await this.load(null);
+  }
+
+  protected hasFilters() { return Object.values(this.appliedFilters()).some(Boolean); }
 
   private async load(id: string | null): Promise<void> {
     const owner = this.auth.user()?.id;
@@ -72,7 +100,7 @@ export class OrdersPage implements OnDestroy {
         if (!this.current(owner, version)) return;
         this.detail.set(result.detail); this.customerEmail.set(result.customerEmail);
       } else if (this.administrative) {
-        const result = await this.adminOrders.list();
+        const result = await this.adminOrders.list(this.appliedFilters());
         if (!this.current(owner, version)) return;
         this.list.set(result.map(value => value.order));
         this.customerEmails.set(Object.fromEntries(result.map(value => [value.order.id, value.customerEmail])));
@@ -81,7 +109,7 @@ export class OrdersPage implements OnDestroy {
         if (!this.current(owner, version)) return;
         this.detail.set(result);
       } else {
-        const result = await this.orders.list();
+        const result = await this.orders.list(this.appliedFilters());
         if (!this.current(owner, version)) return;
         this.list.set(result);
       }

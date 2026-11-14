@@ -1,6 +1,7 @@
 using Cupcakes.Api.Contracts;
 using Cupcakes.Api.Data;
 using Cupcakes.Api.Identity;
+using Cupcakes.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,20 @@ namespace Cupcakes.Api.Controllers;
 [ApiController]
 [Authorize(Roles = ApplicationRoles.Admin)]
 [Route("api/admin/products")]
-public sealed class AdminProductsController(CupcakesDbContext db) : ControllerBase
+public sealed class AdminProductsController(CupcakesDbContext db, ProductReviewService reviews) : ControllerBase
 {
+    [HttpGet("{productId:guid}/reviews")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [ProducesResponseType<AdminProductReviewResponse[]>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminProductReviewResponse[]>> ListReviews(Guid productId, CancellationToken ct)
+    {
+        var result = await reviews.AdminListAsync(productId, ct);
+        return result is null ? Problem(statusCode: 404, title: "Produto nao encontrado.") : Ok(result);
+    }
+
     [HttpPost("{productId:guid}/activate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -6,8 +6,8 @@ namespace Cupcakes.Api.Services;
 
 public sealed class AdminOrderQueryService(CupcakesDbContext db)
 {
-    public async Task<AdminOrderSummaryResponse[]> ListAsync(CancellationToken ct) =>
-        await (from order in db.Orders.AsNoTracking()
+    public async Task<AdminOrderSummaryResponse[]> ListAsync(AdminOrderFilterRequest filters, CancellationToken ct) =>
+        await (from order in OrderFilters.Apply(db.Orders.AsNoTracking(), filters)
                join user in db.Users on order.UserId equals user.Id
                orderby order.CreatedAt descending, order.Id descending
                select new AdminOrderSummaryResponse(user.Email!,
