@@ -46,3 +46,4 @@ Os diagramas, wireframes e algumas capturas de tela estão anexados aos document
 ## Situação da entrega acadêmica
 
 Há registros de testes técnicos, de publicação da aplicação e de acesso em navegador. **As avaliações de cinco participantes, o laudo final com base nesses feedbacks e os vídeos solicitados pela disciplina ainda dependem da realização e registro pelo estudante.** Os testes automatizados não substituem essas avaliações.
+
