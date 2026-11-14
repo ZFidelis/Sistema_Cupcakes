@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" role="img" aria-labelledby="title desc">
+  <title id="title">Casos de uso da loja de cupcakes</title>
+  <desc id="desc">Visitante consulta catálogo e se cadastra ou entra. Cliente herda consultas públicas, compra e acompanha seus pedidos. Administrador gerencia produtos e pedidos. Relatórios e avaliações também integram a aplicação demonstrativa.</desc>
+  <defs>
+    <style>text{font-family:Arial,sans-serif;fill:#20242c;font-size:16px}.actor{fill:none;stroke:#343b49;stroke-width:2}.edge{fill:none;stroke:#687183;stroke-width:1.5}.use{fill:#f4f6fa;stroke:#343b49;stroke-width:1.5}.optional{fill:#fff8df;stroke:#665b31;stroke-width:1.5;stroke-dasharray:5 4}.small{font-size:13px}</style>
+  </defs>
+  <rect width="1000" height="800" fill="white"/>
+  <text x="30" y="35" style="font-size:23px;font-weight:bold">Loja de cupcakes — casos de uso</text>
+  <text x="30" y="61" class="small">Visão geral • sem gateway, e-mail externo ou entrega integrada</text>
+  <rect x="230" y="90" width="535" height="665" rx="5" fill="none" stroke="#343b49" stroke-width="2"/>
+  <text x="250" y="117" style="font-weight:bold">Sistema web</text>
+  <g class="actor"><circle cx="90" cy="195" r="16"/><path d="M90 211v50 M60 232h60 M90 261l-24 35 M90 261l24 35"/>
+  <circle cx="90" cy="480" r="16"/><path d="M90 496v50 M60 517h60 M90 546l-24 35 M90 546l24 35"/>
+  <circle cx="905" cy="350" r="16"/><path d="M905 366v50 M875 387h60 M905 416l-24 35 M905 416l24 35"/></g>
+  <text x="90" y="320" text-anchor="middle">Visitante</text>
+  <text x="90" y="605" text-anchor="middle">Cliente</text>
+  <text x="905" y="480" text-anchor="middle">Administrador</text>
+  <path class="edge" d="M90 460V350"/><path d="M90 334l-10 16h20z" fill="white" stroke="#687183"/>
+  <text x="104" y="399" class="small">herda</text>
+  <path class="edge" d="M120 232L310 180 M120 232L310 280 M120 517L310 280 M120 517L310 380 M120 517L310 480 M120 517L310 715 M875 387L705 280 M875 387L705 570 M875 387L705 640"/>
+  <ellipse class="use" cx="505" cy="180" rx="195" ry="33"/>
+  <text x="505" y="175" text-anchor="middle">Consultar catálogo e filtros</text><text x="505" y="195" text-anchor="middle" class="small">US04 e US05</text>
+  <ellipse class="use" cx="505" cy="280" rx="195" ry="33"/>
+  <text x="505" y="275" text-anchor="middle">UC01 — Cadastrar / entrar / sair</text><text x="505" y="295" text-anchor="middle" class="small">US01–03; cadastro público somente Cliente</text>
+  <ellipse class="use" cx="505" cy="380" rx="195" ry="33"/>
+  <text x="505" y="375" text-anchor="middle">UC02 — Comprar ficticiamente</text><text x="505" y="395" text-anchor="middle" class="small">US06–10; carrinho, total e simulação</text>
+  <ellipse class="use" cx="505" cy="480" rx="195" ry="33"/>
+  <text x="505" y="475" text-anchor="middle">UC04 — Acompanhar pedido próprio</text><text x="505" y="495" text-anchor="middle" class="small">US10–11; status manual</text>
+  <ellipse class="use" cx="505" cy="570" rx="195" ry="30"/>
+  <text x="505" y="565" text-anchor="middle">UC03 — Administrar produtos / pedidos</text><text x="505" y="585" text-anchor="middle" class="small">US12–13 e apoio à US11</text>
+  <ellipse class="optional" cx="505" cy="640" rx="195" ry="28"/>
+  <text x="505" y="636" text-anchor="middle">UC05 — Relatório</text><text x="505" y="655" text-anchor="middle" class="small">US14 · Administrador</text>
+  <ellipse class="optional" cx="505" cy="715" rx="195" ry="28"/>
+  <text x="505" y="711" text-anchor="middle">UC06 — Avaliar produto</text><text x="505" y="730" text-anchor="middle" class="small">US15 · Cliente</text>
+  <text x="30" y="782" class="small">Diagrama de navegação e responsabilidades. Compra e acompanhamento são demonstrativos.</text>
+</svg>

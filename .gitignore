@@ -1,5 +1,5 @@
 # Documentacao local: inclusao no Git sera feita posteriormente.
-docs/
+docs_ignored/
 
 # Angular e Node.js
 node_modules/
